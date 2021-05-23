@@ -84,15 +84,6 @@ function Tensors.tomandel!(v::Vector{T}, r::Residuals{Plastic,T}) where T
     return v
 end
 
-# function frommandel!(r::Residuals{Plastic,T}, v::Vector{T}) where T
-#     M=6
-#     r.σ = frommandel(SymmetricTensor{2,3}, view(v, 1:M))
-#     r.κ = v[M+1]
-#     r.α = frommandel(SymmetricTensor{2,3}, view(v, M+2:2M+1))
-#     r.μ = v[2M+2]
-#     return r
-# end
-
 function Tensors.frommandel(::Type{Residuals{Plastic}}, v::Vector{T}) where T
     σ = frommandel(SymmetricTensor{2,3}, view(v, 1:6))
     κ = v[7]
@@ -125,7 +116,8 @@ An associative flow rule and non-associative hardening rules are used. The evolu
 ```
 # Keyword arguments
 - `cache`: Cache for the iterative solver, used by NLsolve.jl. It is strongly recommended to pre-allocate the cache for repeated calls to `constitutive_driver`. See [`get_cache`](@ref).
-- `options::Dict{Symbol, Any}`: Solver options for the non-linear solver. Under the key `:nlsolve_params` keyword arguments for `nlsolve` can be handed over. See [NLsolve documentation](https://github.com/JuliaNLSolvers/NLsolve.jl#common-options).
+- `options::Dict{Symbol, Any}`: Solver options for the non-linear solver. Under the key `:nlsolve_params` keyword arguments for `nlsolve` can be handed over.
+See [NLsolve documentation](https://github.com/JuliaNLSolvers/NLsolve.jl#common-options). By default the Newton solver will be used.
 """
 function constitutive_driver(m::Plastic, Δε::SymmetricTensor{2,3,T,6}, state::PlasticState{3},
     Δt=nothing; cache=get_cache(m), options::Dict{Symbol, Any} = Dict{Symbol, Any}()) where T
@@ -143,9 +135,8 @@ function constitutive_driver(m::Plastic, Δε::SymmetricTensor{2,3,T,6}, state::
         # convert initial guess to vector
         tomandel!(cache.x_f, x0)
         # solve for variables x
-        # result = NLsolve.nlsolve(cache, cache.x_f; method=:newton)
-        # the following leads to a Julia crash in line 152, issue reported at https://github.com/JuliaLang/julia/issues/40912
         nlsolve_options = get(options, :nlsolve_params, Dict{Symbol, Any}(:method=>:newton))
+        haskey(nlsolve_options, :method) || merge!(nlsolve_options, Dict{Symbol, Any}(:method=>:newton)) # set newton if the user did not supply another method
         result = NLsolve.nlsolve(cache, cache.x_f; nlsolve_options...)
         
         if result.f_converged
@@ -168,13 +159,4 @@ function residuals(vars::Residuals{Plastic}, m::Plastic, material_state::Plastic
     Rα = α - material_state.α - μ*m.H_α * (-ν + 3/(2*m.α_∞)*dev(α)) # R_α(σ, α, μ)
     Rμ = sqrt(3/2)*norm(dev(σ-α)) - m.σ_y - κ
     return Residuals{Plastic}(Rσ, Rκ, Rα, Rμ)
-end
-
-# TODO would be nice if this could be non-allocating (would require buffers for Residuals{Dual})
-function vector_residual!(R::Function, r_vector::Vector{T}, x_vector::Vector{T}, m::AbstractMaterial) where T
-    # construct residuals with type T
-    x_tensor = frommandel(Residuals{typeof(m)}, x_vector)
-    r_tensor = R(x_tensor)
-    tomandel!(r_vector, r_tensor)
-    return r_vector
 end

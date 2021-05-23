@@ -29,6 +29,7 @@ function get_cache end
 
 include("LinearElastic.jl")
 include("Plastic.jl")
+include("nonlinear_solver.jl")
 
 export initial_material_state, get_cache
 export constitutive_driver
