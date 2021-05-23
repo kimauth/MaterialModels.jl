@@ -20,7 +20,7 @@
 
 function vector_residual!(R::Function, r_vector::Vector{T}, x_vector::Vector{T}, m::AbstractMaterial) where T
     # construct residuals with type T
-    x_tensor = frommandel(Residuals{typeof(m)}, x_vector)
+    x_tensor = frommandel(get_residual_type(m), x_vector)
     r_tensor = R(x_tensor)
     tomandel!(r_vector, r_tensor)
     return r_vector

@@ -3,6 +3,7 @@ module MaterialModels
 using Reexport
 @reexport using Tensors
 using NLsolve
+using Rotations
 
 # Write your package code here.
 abstract type AbstractMaterial end
@@ -29,6 +30,9 @@ function get_cache end
 
 include("LinearElastic.jl")
 include("Plastic.jl")
+include("CrystalViscoPlastic/slipsystems.jl")
+include("CrystalViscoPlastic/CrystalViscoPlastic.jl")
+
 include("nonlinear_solver.jl")
 
 export initial_material_state, get_cache

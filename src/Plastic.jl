@@ -60,21 +60,22 @@ end
 
 # constitutive driver operates in 3D, so these can always be 3D
 # TODO: Should Residuals have a Type Parameter N for the number of scalar equations?
-struct Residuals{Plastic, T}
+struct ResidualsPlastic{T}
     σ::SymmetricTensor{2,3,T,6}
     κ::T
     α::SymmetricTensor{2,3,T,6}
     μ::T
-    Residuals{Plastic}(σ::SymmetricTensor{2,3,T,6}, κ::T, α::SymmetricTensor{2,3,T,6}, μ::T) where {T} = new{Plastic,T}(σ, κ, α, μ)
+    ResidualsPlastic(σ::SymmetricTensor{2,3,T,6}, κ::T, α::SymmetricTensor{2,3,T,6}, μ::T) where {T} = new{T}(σ, κ, α, μ)
 end
 
-Residuals(::Plastic) = Residuals{Plastic}(zero(SymmetricTensor{2,3}), zero(Float64), zero(SymmetricTensor{2,3}), zero(Float64))
+# Residuals(::Plastic) = ResidualsPlastic(zero(SymmetricTensor{2,3}), zero(Float64), zero(SymmetricTensor{2,3}), zero(Float64))
+get_residual_type(::Plastic) = ResidualsPlastic
 
 # doesn't allow other dimesion or unsymmetric tensors, so this is a constant
 get_n_scalar_equations(::Plastic) = 14
 
 # specified version, fewer allocations, faster than generic fallback
-function Tensors.tomandel!(v::Vector{T}, r::Residuals{Plastic,T}) where T
+function Tensors.tomandel!(v::Vector{T}, r::ResidualsPlastic{T}) where T
     M=6
     # TODO check vector length
     tomandel!(view(v, 1:M), r.σ)
@@ -84,12 +85,12 @@ function Tensors.tomandel!(v::Vector{T}, r::Residuals{Plastic,T}) where T
     return v
 end
 
-function Tensors.frommandel(::Type{Residuals{Plastic}}, v::Vector{T}) where T
+function Tensors.frommandel(::Type{ResidualsPlastic}, v::Vector{T}) where T
     σ = frommandel(SymmetricTensor{2,3}, view(v, 1:6))
     κ = v[7]
     α = frommandel(SymmetricTensor{2,3}, view(v, 8:13))
     μ = v[14]
-    return Residuals{Plastic}(σ, κ, α, μ)
+    return ResidualsPlastic(σ, κ, α, μ)
 end
 
 """
@@ -131,7 +132,7 @@ function constitutive_driver(m::Plastic, Δε::SymmetricTensor{2,3,T,6}, state::
         # set the current residual function that depends only on the variables
         cache.f = (r_vector, x_vector) -> vector_residual!(((r,x)->residuals!(r,x,m,state,Δε)), r_vector, x_vector, m)
         # initial guess
-        x0 = Residuals{Plastic}(σ_trial, state.κ, state.α, state.μ)
+        x0 = ResidualsPlastic(σ_trial, state.κ, state.α, state.μ)
         # convert initial guess to vector
         tomandel!(cache.x_f, x0)
         # solve for variables x
@@ -140,7 +141,7 @@ function constitutive_driver(m::Plastic, Δε::SymmetricTensor{2,3,T,6}, state::
         result = NLsolve.nlsolve(cache, cache.x_f; nlsolve_options...)
         
         if result.f_converged
-            x = frommandel(Residuals{Plastic}, result.zero)
+            x = frommandel(ResidualsPlastic, result.zero)
             dRdx = cache.DF
             inv_J_σσ = frommandel(SymmetricTensor{4,3}, inv(dRdx))
             ∂σ∂ε = inv_J_σσ ⊡ m.Eᵉ
@@ -151,12 +152,12 @@ function constitutive_driver(m::Plastic, Δε::SymmetricTensor{2,3,T,6}, state::
     end
 end
 
-function residuals(vars::Residuals{Plastic}, m::Plastic, material_state::PlasticState{3}, Δε)
+function residuals(vars::ResidualsPlastic, m::Plastic, material_state::PlasticState{3}, Δε)
     σ = vars.σ; κ = vars.κ; α = vars.α; μ = vars.μ
     ν = 3/(2*sqrt(3/2)*norm(dev(σ-α)))*dev(σ-α)
     Rσ = σ - material_state.σ - m.Eᵉ ⊡ Δε + μ * m.Eᵉ ⊡ ν # R_σ(σ, α, μ)
     Rκ = κ - material_state.κ - μ*m.H_κ*(-1 +κ/m.κ_∞) # R_κ(κ, μ)
     Rα = α - material_state.α - μ*m.H_α * (-ν + 3/(2*m.α_∞)*dev(α)) # R_α(σ, α, μ)
     Rμ = sqrt(3/2)*norm(dev(σ-α)) - m.σ_y - κ
-    return Residuals{Plastic}(Rσ, Rκ, Rα, Rμ)
+    return ResidualsPlastic(Rσ, Rκ, Rα, Rμ)
 end
