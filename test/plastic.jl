@@ -26,3 +26,15 @@ state = initial_material_state(m)
 # plastic branch
 Δε = Δε = SymmetricTensor{2,3,Float64}((i,j) -> i==1 && j==1 ? 2ε11_yield : (i == j ? -2ε11_yield*m.ν : 0.0))
 σ, ∂σ∂ε, temp_state = constitutive_driver(m, Δε, state; cache=cache)
+
+# @btime constitutive_driver($m, $Δε, $state; cache=$cache, options=$Dict{Symbol,Any}())
+
+# σ_trial = state.σ + m.Eᵉ ⊡ Δε
+# x0 = MaterialModels.Residuals{Plastic}(σ_trial, state.κ, state.α, state.μ)
+# @btime MaterialModels.residuals($x0, $m, $state, $Δε)
+# @btime frommandel($(MaterialModels.Residuals{Plastic}), $rand(14))
+# x_vector = zeros(14)
+# @btime tomandel!($x_vector, $x0)
+# @btime MaterialModels.vector_residual!($f, $similar(x_vector), $x_vector, m)
+# f(x) = MaterialModels.residuals(x, m, state, Δε)
+# vector_residual!((x->MaterialModels.residuals(x, m, state, zero(SymmetricTensor{2,3}))), r_vector, x_vector, m)

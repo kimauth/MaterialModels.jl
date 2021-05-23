@@ -52,7 +52,7 @@ function get_cache(m::Plastic)
     state = initial_material_state(m)
     # it doesn't actually matter which state and strain step we use here,
     # f is overwritten in the constitutive driver before being used.
-    f(r_vector, x_vector) = vector_residual!(((r,x)->MaterialModels.residuals!(r, x, m, state, zero(SymmetricTensor{2,3}))), r_vector, x_vector, m)
+    f(r_vector, x_vector) = vector_residual!(((x)->MaterialModels.residuals(x, m, state, zero(SymmetricTensor{2,3}))), r_vector, x_vector, m)
     v_cache = Vector{Float64}(undef, get_n_scalar_equations(m))
     cache = NLsolve.OnceDifferentiable(f, v_cache, v_cache; autodiff = :forward)
     return cache
@@ -60,7 +60,7 @@ end
 
 # constitutive driver operates in 3D, so these can always be 3D
 # TODO: Should Residuals have a Type Parameter N for the number of scalar equations?
-mutable struct Residuals{Plastic, T}
+struct Residuals{Plastic, T}
     σ::SymmetricTensor{2,3,T,6}
     κ::T
     α::SymmetricTensor{2,3,T,6}
@@ -84,14 +84,14 @@ function Tensors.tomandel!(v::Vector{T}, r::Residuals{Plastic,T}) where T
     return v
 end
 
-function frommandel!(r::Residuals{Plastic,T}, v::Vector{T}) where T
-    M=6
-    r.σ = frommandel(SymmetricTensor{2,3}, view(v, 1:M))
-    r.κ = v[M+1]
-    r.α = frommandel(SymmetricTensor{2,3}, view(v, M+2:2M+1))
-    r.μ = v[2M+2]
-    return r
-end
+# function frommandel!(r::Residuals{Plastic,T}, v::Vector{T}) where T
+#     M=6
+#     r.σ = frommandel(SymmetricTensor{2,3}, view(v, 1:M))
+#     r.κ = v[M+1]
+#     r.α = frommandel(SymmetricTensor{2,3}, view(v, M+2:2M+1))
+#     r.μ = v[2M+2]
+#     return r
+# end
 
 function Tensors.frommandel(::Type{Residuals{Plastic}}, v::Vector{T}) where T
     σ = frommandel(SymmetricTensor{2,3}, view(v, 1:6))
@@ -139,17 +139,17 @@ function constitutive_driver(m::Plastic, Δε::SymmetricTensor{2,3,T,6}, state::
         # set the current residual function that depends only on the variables
         cache.f = (r_vector, x_vector) -> vector_residual!(((r,x)->residuals!(r,x,m,state,Δε)), r_vector, x_vector, m)
         # initial guess
-        x = Residuals{Plastic}(σ_trial, state.κ, state.α, state.μ)
+        x0 = Residuals{Plastic}(σ_trial, state.κ, state.α, state.μ)
         # convert initial guess to vector
-        tomandel!(cache.x_f, x)
+        tomandel!(cache.x_f, x0)
         # solve for variables x
-        result = NLsolve.nlsolve(cache, cache.x_f; method=:newton)
+        # result = NLsolve.nlsolve(cache, cache.x_f; method=:newton)
         # the following leads to a Julia crash in line 152, issue reported at https://github.com/JuliaLang/julia/issues/40912
-        # nlsolve_options = get(options, :nlsolve_params, Dict{Symbol, Any}(:method=>:newton))
-        # result = NLsolve.nlsolve(cache, cache.x_f; nlsolve_options...)
+        nlsolve_options = get(options, :nlsolve_params, Dict{Symbol, Any}(:method=>:newton))
+        result = NLsolve.nlsolve(cache, cache.x_f; nlsolve_options...)
         
         if result.f_converged
-            frommandel!(x, result.zero)
+            x = frommandel(Residuals{Plastic}, result.zero)
             dRdx = cache.DF
             inv_J_σσ = frommandel(SymmetricTensor{4,3}, inv(dRdx))
             ∂σ∂ε = inv_J_σσ ⊡ m.Eᵉ
@@ -160,22 +160,21 @@ function constitutive_driver(m::Plastic, Δε::SymmetricTensor{2,3,T,6}, state::
     end
 end
 
-function residuals!(residuals::Residuals{Plastic}, vars::Residuals{Plastic}, m::Plastic, material_state::PlasticState{3}, Δε)
+function residuals(vars::Residuals{Plastic}, m::Plastic, material_state::PlasticState{3}, Δε)
     σ = vars.σ; κ = vars.κ; α = vars.α; μ = vars.μ
     ν = 3/(2*sqrt(3/2)*norm(dev(σ-α)))*dev(σ-α)
-    residuals.σ = σ - material_state.σ - m.Eᵉ ⊡ Δε + μ * m.Eᵉ ⊡ ν # R_σ(σ, α, μ)
-    residuals.κ = κ - material_state.κ - μ*m.H_κ*(-1 +κ/m.κ_∞) # R_κ(κ, μ)
-    residuals.α = α - material_state.α - μ*m.H_α * (-ν + 3/(2*m.α_∞)*dev(α)) # R_α(σ, α, μ)
-    residuals.μ = sqrt(3/2)*norm(dev(σ-α)) - m.σ_y - κ
-    return residuals
+    Rσ = σ - material_state.σ - m.Eᵉ ⊡ Δε + μ * m.Eᵉ ⊡ ν # R_σ(σ, α, μ)
+    Rκ = κ - material_state.κ - μ*m.H_κ*(-1 +κ/m.κ_∞) # R_κ(κ, μ)
+    Rα = α - material_state.α - μ*m.H_α * (-ν + 3/(2*m.α_∞)*dev(α)) # R_α(σ, α, μ)
+    Rμ = sqrt(3/2)*norm(dev(σ-α)) - m.σ_y - κ
+    return Residuals{Plastic}(Rσ, Rκ, Rα, Rμ)
 end
 
 # TODO would be nice if this could be non-allocating (would require buffers for Residuals{Dual})
-function vector_residual!(R!::Function, r_vector::Vector{T}, x_vector::Vector{T}, m::AbstractMaterial) where T
+function vector_residual!(R::Function, r_vector::Vector{T}, x_vector::Vector{T}, m::AbstractMaterial) where T
     # construct residuals with type T
-    r_tensor = frommandel(Residuals{typeof(m)}, r_vector)
     x_tensor = frommandel(Residuals{typeof(m)}, x_vector)
-    R!(r_tensor, x_tensor)
+    r_tensor = R(x_tensor)
     tomandel!(r_vector, r_tensor)
     return r_vector
 end
