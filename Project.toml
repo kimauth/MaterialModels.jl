@@ -11,6 +11,7 @@ Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 Tensors = "48a634ad-e948-5137-8d70-aa71f2a747f4"
 
 [compat]
+Tensors = "1.5"
 julia = "1"
 
 [extras]
