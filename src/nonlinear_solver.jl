@@ -25,3 +25,23 @@ function vector_residual!(R::Function, r_vector::Vector{T}, x_vector::Vector{T},
     tomandel!(r_vector, r_tensor)
     return r_vector
 end
+
+function update_cache!(cache, f)
+    cache.f = f
+    jac_cfg = ForwardDiff.JacobianConfig(cache.f, cache.F, cache.x_f)
+    ForwardDiff.checktag(jac_cfg, cache.f, cache.x_f)
+
+    F2 = copy(cache.F)
+    function j_forwarddiff!(J, x)
+        ForwardDiff.jacobian!(J, cache.f, F2, x, jac_cfg, Val{false}())
+    end
+    function fj_forwarddiff!(F, J, x)
+        jac_res = DiffResults.DiffResult(F, J)
+        ForwardDiff.jacobian!(jac_res, cache.f, F2, x, jac_cfg, Val{false}())
+        DiffResults.value(jac_res)
+    end
+
+    cache.df = j_forwarddiff!
+    cache.fdf = fj_forwarddiff!
+    return cache
+end

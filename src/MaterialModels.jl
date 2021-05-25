@@ -4,6 +4,9 @@ using Reexport
 @reexport using Tensors
 using NLsolve
 using Rotations
+import ForwardDiff
+import DiffResults
+using TimerOutputs
 
 # Write your package code here.
 abstract type AbstractMaterial end
