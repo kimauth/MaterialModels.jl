@@ -65,14 +65,13 @@ struct ResidualsPlastic{T}
     κ::T
     α::SymmetricTensor{2,3,T,6}
     μ::T
-    ResidualsPlastic(σ::SymmetricTensor{2,3,T,6}, κ::T, α::SymmetricTensor{2,3,T,6}, μ::T) where {T} = new{T}(σ, κ, α, μ)
 end
-
-# Residuals(::Plastic) = ResidualsPlastic(zero(SymmetricTensor{2,3}), zero(Float64), zero(SymmetricTensor{2,3}), zero(Float64))
-get_residual_type(::Plastic) = ResidualsPlastic
 
 # doesn't allow other dimesion or unsymmetric tensors, so this is a constant
 get_n_scalar_equations(::Plastic) = 14
+
+# Residuals(::Plastic) = ResidualsPlastic(zero(SymmetricTensor{2,3}), zero(Float64), zero(SymmetricTensor{2,3}), zero(Float64))
+Tensors.get_base(::Type{Plastic}) = ResidualsPlastic # needed for frommandel
 
 # specified version, fewer allocations, faster than generic fallback
 function Tensors.tomandel!(v::Vector{T}, r::ResidualsPlastic{T}) where T
@@ -90,11 +89,11 @@ function Tensors.frommandel(::Type{ResidualsPlastic}, v::Vector{T}) where T
     κ = v[7]
     α = frommandel(SymmetricTensor{2,3}, view(v, 8:13))
     μ = v[14]
-    return ResidualsPlastic(σ, κ, α, μ)
+    return ResidualsPlastic{T}(σ, κ, α, μ)
 end
 
 """
-    constitutive_driver(m::Plastic, Δε::SymmetricTensor{2,3,T,6}, state::PlasticState{3}; <keyword arguments>)
+    material_response(m::Plastic, Δε::SymmetricTensor{2,3,T,6}, state::PlasticState{3}; <keyword arguments>)
 
 Return the stress tensor, stress tangent and the new `MaterialState` for the given strain step Δε and previous material state `state`.
 
@@ -116,11 +115,11 @@ An associative flow rule and non-associative hardening rules are used. The evolu
 \\end{aligned}
 ```
 # Keyword arguments
-- `cache`: Cache for the iterative solver, used by NLsolve.jl. It is strongly recommended to pre-allocate the cache for repeated calls to `constitutive_driver`. See [`get_cache`](@ref).
+- `cache`: Cache for the iterative solver, used by NLsolve.jl. It is strongly recommended to pre-allocate the cache for repeated calls to `material_response`. See [`get_cache`](@ref).
 - `options::Dict{Symbol, Any}`: Solver options for the non-linear solver. Under the key `:nlsolve_params` keyword arguments for `nlsolve` can be handed over.
 See [NLsolve documentation](https://github.com/JuliaNLSolvers/NLsolve.jl#common-options). By default the Newton solver will be used.
 """
-function constitutive_driver(m::Plastic, Δε::SymmetricTensor{2,3,T,6}, state::PlasticState{3},
+function material_response(m::Plastic, Δε::SymmetricTensor{2,3,T,6}, state::PlasticState{3},
     Δt=nothing; cache=get_cache(m), options::Dict{Symbol, Any} = Dict{Symbol, Any}()) where T
 
     σ_trial = state.σ + m.Eᵉ ⊡ Δε
@@ -130,7 +129,9 @@ function constitutive_driver(m::Plastic, Δε::SymmetricTensor{2,3,T,6}, state::
         return σ_trial, m.Eᵉ, PlasticState(σ_trial, state.κ, state.α, state.μ)
     else
         # set the current residual function that depends only on the variables
-        cache.f = (r_vector, x_vector) -> vector_residual!(((r,x)->residuals!(r,x,m,state,Δε)), r_vector, x_vector, m)
+        # cache.f = (r_vector, x_vector) -> vector_residual!(((x)->residuals(x,m,state,Δε)), r_vector, x_vector, m)
+        f(r_vector, x_vector) = vector_residual!(((x)->residuals(x,m,state,Δε)), r_vector, x_vector, m)
+        update_cache!(cache, f)
         # initial guess
         x0 = ResidualsPlastic(σ_trial, state.κ, state.α, state.μ)
         # convert initial guess to vector
@@ -139,7 +140,8 @@ function constitutive_driver(m::Plastic, Δε::SymmetricTensor{2,3,T,6}, state::
         nlsolve_options = get(options, :nlsolve_params, Dict{Symbol, Any}(:method=>:newton))
         haskey(nlsolve_options, :method) || merge!(nlsolve_options, Dict{Symbol, Any}(:method=>:newton)) # set newton if the user did not supply another method
         result = NLsolve.nlsolve(cache, cache.x_f; nlsolve_options...)
-        
+        # result = NLsolve.newton(cache, cache.x_f, 0.0, 1e-8, 1000, false, false, false, LineSearches.Static(); linsolve = (x, A, b) -> copyto!(x, A\b))
+        # result = NLsolve.newton_(cache, cache.x_f, 0.0, 1e-8, 1000, false, false, false, LineSearches.Static(), (x, A, b) -> copyto!(x, A\b), NLsolve.NewtonCache(cache))
         if result.f_converged
             x = frommandel(ResidualsPlastic, result.zero)
             dRdx = cache.DF

@@ -18,9 +18,9 @@
 #     return start + 1
 # end
 
-function vector_residual!(R::Function, r_vector::Vector{T}, x_vector::Vector{T}, m::AbstractMaterial) where T
+function vector_residual!(R::Function, r_vector::Vector{T}, x_vector::Vector{T}, m) where T
     # construct residuals with type T
-    x_tensor = frommandel(get_residual_type(m), x_vector)
+    x_tensor = frommandel(Tensors.get_base(typeof(m)), x_vector)
     r_tensor = R(x_tensor)
     tomandel!(r_vector, r_tensor)
     return r_vector
@@ -28,7 +28,8 @@ end
 
 function update_cache!(cache, f)
     cache.f = f
-    jac_cfg = ForwardDiff.JacobianConfig(cache.f, cache.F, cache.x_f)
+    chunk = ForwardDiff.Chunk(cache.x_f)
+    jac_cfg = ForwardDiff.JacobianConfig(cache.f, cache.F, cache.x_f, chunk)
     ForwardDiff.checktag(jac_cfg, cache.f, cache.x_f)
 
     F2 = copy(cache.F)
