@@ -45,7 +45,7 @@ initial_material_state(::LinearElastic) = zero(LinearElasticState{3,Float64,6})
 # constitutive drivers generally operate in 3D 
 # (we could specialize for lower dimensions if needed for performance)
 """
-    constitutive_driver(m::LinearElastic, Δε::SymmetricTensor{2,3}, state::LinearElasticState{3})
+    material_response(m::LinearElastic, Δε::SymmetricTensor{2,3}, state::LinearElasticState{3})
 
 Return the stress tensor, stress tangent and the new `MaterialState` for the given strain step Δε such that
 
@@ -53,7 +53,7 @@ Return the stress tensor, stress tangent and the new `MaterialState` for the giv
 \\boldsymbol{\\sigma} = \\mathbf{E}^\\text{e} : \\Delta \\boldsymbol{\\varepsilon} .
 ```
 """
-function constitutive_driver(m::LinearElastic, Δε::SymmetricTensor{2,3}, state::LinearElasticState{3}, Δt=nothing; cache=nothing, options=nothing)
+function material_response(m::LinearElastic, Δε::SymmetricTensor{2,3}, state::LinearElasticState{3}, Δt=nothing; cache=nothing, options=nothing)
     Δσ = m.Eᵉ ⊡ Δε
     σ = state.σ + Δσ
     return σ, m.Eᵉ, LinearElasticState(σ)
