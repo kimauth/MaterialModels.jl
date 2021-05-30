@@ -18,6 +18,7 @@ Tensors = "48a634ad-e948-5137-8d70-aa71f2a747f4"
 TimerOutputs = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
 
 [compat]
+ProfileView = "0.6"
 julia = "1"
 
 [extras]
