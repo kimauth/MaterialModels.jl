@@ -14,9 +14,7 @@ function check_checksum(material::MaterialModels.AbstractMaterial, loading::Vect
 
     state = initial_material_state(material)
     stresses = []; tangents = [];
-    i = 0
-    for load in loading
-        i+=1
+    for (i,load) in enumerate(loading)
         stress, tangent, state = material_response(material, load, state)
 
         #For user to check that the material acutally enters plastic state
@@ -36,13 +34,10 @@ function check_checksum(material::MaterialModels.AbstractMaterial, loading::Vect
     if OVERWRITE_CHECKSUMS
         write(csio, checkhash1, "\n")
         write(csio, checkhash2, "\n")
+        close(csio)
     else
         @test chomp(readline(csio)) == checkhash1
         @test chomp(readline(csio)) == checkhash2
-    end
-
-    if OVERWRITE_CHECKSUMS
-        close(csio)
     end
 
 end

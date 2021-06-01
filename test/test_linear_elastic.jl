@@ -16,12 +16,12 @@
 end
 
 function get_LinearElastic_loading()
-    loading = range(0.0,  0.02, length=1)
+    loading = range(0.0,  0.02, length=2)
     return [SymmetricTensor{2,3}((ε, ε/10, 0.0, 0.0, 0.0, 0.0)) for ε in loading]
 end  
 
 @testset "LinearElastic checksum" begin
     m = LinearElastic(E=200e3, ν=0.3)
     loading = get_LinearElastic_loading()
-    check_checksum(m, loading, "LinearElastic1")
+    check_checksum(m, loading, "LinearElastic1")#, OVERWRITE_CHECKSUMS=false)
 end
