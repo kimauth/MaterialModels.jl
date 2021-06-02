@@ -44,6 +44,8 @@ struct CrystalViscoPlasticRed{S} <: AbstractMaterial
     end
 end
 
+strainmeasure(::Type{<:CrystalViscoPlasticRed}) = SmallStrain
+
 # keyword argument constructor
 CrystalViscoPlasticRed(; E, ν, τ_y, H_iso, H_kin, q, α_∞, t_star, σ_c, m, slipsystems) = CrystalViscoPlasticRed(E, ν, τ_y, H_iso, H_kin, q, α_∞, t_star, σ_c, m, slipsystems)
 
