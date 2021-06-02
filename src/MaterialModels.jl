@@ -27,6 +27,15 @@ Store state variables here. For now, this should **not** be mutable, a new objec
 abstract type AbstractMaterialState end
 abstract type AbstractResiduals end
 
+
+"""
+    StrainMeasure
+
+Defines the type of strain measure the a material uses, i.e Deformation gradient, Green-Lagrange strain etc. 
+"""
+abstract type StrainMeasure end
+
+
 """
     material_response(m::AbstractMaterial, Δε::SymmetricTensor{2,3}, state::AbstractMaterialState, Δt; cache, options)
 
@@ -65,7 +74,7 @@ As the residual functions depend i.a. on the strain increment, the function and 
 """
 function update_cache! end
 
-
+include("traits.jl")
 include("LinearElastic.jl")
 include("Plastic.jl")
 include("CrystalViscoPlastic/slipsystems.jl")

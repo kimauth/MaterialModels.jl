@@ -35,6 +35,8 @@ struct Plastic <: AbstractMaterial
     end
 end
 
+strainmeasure(::Type{<:Plastic}) = SmallStrain
+
 # keyword argument constructor
 Plastic(;E, ν, σ_y, H, r, κ_∞, α_∞) = Plastic(E, ν, σ_y, H, r, κ_∞, α_∞)
 

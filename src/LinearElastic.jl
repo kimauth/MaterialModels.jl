@@ -18,6 +18,8 @@ struct LinearElastic <: AbstractMaterial
     LinearElastic(E::Float64, ν::Float64) = new(E, ν, elastic_tangent_3D(E, ν))
 end
 
+strainmeasure(::Type{<:LinearElastic}) = SmallStrain
+
 # Let's always supply a constructor with keyword arguments
 LinearElastic(;E::Float64, ν::Float64) = LinearElastic(E, ν)
 
