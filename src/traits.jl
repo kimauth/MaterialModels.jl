@@ -8,21 +8,21 @@ strainmeasure(::Type{<:AbstractMaterial}) = error("Strain measure for material $
 
 #
 # Main dispatch
-function material_response(m::M, F::Tensor{2}, state::AbstractMaterialState, Δt::Float64, cache, options) where M<:AbstractMaterial 
-     constitutive_driver(strainmeasure(M), m, F, state, Δt, cache, options)
+function solid_material_response(m::M, F::Tensor{2}, state::AbstractMaterialState, Δt::Float64, cache, options) where M<:AbstractMaterial 
+    solid_material_response(strainmeasure(M), m, F, state, Δt, cache, options)
 end
 
 #
 # RightCauchyGreen
-function material_response(::RightCauchyGreen, m::AbstractMaterial, F, state::AbstractMaterialState, Δt::Float64, cache, options)
+function solid_material_response(::RightCauchyGreen, m::AbstractMaterial, F, state::AbstractMaterialState, Δt::Float64, cache, options)
     C = tdot(F)
-    S, dSdE, state = constitutive_driver(m, C, state::AbstractMaterialState, Δt::Float64, cache, options)
+    S, dSdE, state = material_response(m, C, state::AbstractMaterialState, Δt::Float64, cache, options)
 end
 
 #
 # DeformationGradient
-function material_response(::DeformationGradient, m::AbstractMaterial, F::Tensor{2}, state::AbstractMaterialState, Δt::Float64, cache, options)
-    S, dSdE, state = constitutive_driver(m, F, state::AbstractMaterialState, Δt::Float64, cache, options)
+function solid_material_response(::DeformationGradient, m::AbstractMaterial, F::Tensor{2}, state::AbstractMaterialState, Δt::Float64, cache, options)
+    S, dSdE, state = material_response(m, F, state::AbstractMaterialState, Δt::Float64, cache, options)
 end
 
 #
