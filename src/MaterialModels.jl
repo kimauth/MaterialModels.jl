@@ -8,6 +8,11 @@ import ForwardDiff
 import DiffResults
 using TimerOutputs
 using StaticArrays
+using LinearAlgebra
+
+
+
+
 
 # Write your package code here.
 """
@@ -71,6 +76,7 @@ include("Plastic.jl")
 include("CrystalViscoPlastic/slipsystems.jl")
 include("CrystalViscoPlastic/CrystalViscoPlastic.jl")
 include("CrystalViscoPlastic/CrystalViscoPlasticRed.jl")
+include("SmallStrainPlasticity/SmallStrainPlasticity.jl")
 
 include("nonlinear_solver.jl")
 
@@ -80,5 +86,10 @@ export material_response
 export AbstractMaterial
 export LinearElastic, Plastic
 export LinearElasticState, PlasticState
+
+export Chaboche
+export Elastic
+export Iso_Voce, Iso_Swift
+export Kin_AF, Kin_DB, Kin_OW
 
 end
