@@ -32,7 +32,7 @@ function elastic_tangent_3D(E::T, ν::T) where T
 end
 
 # TODO not sure if we could hardcode Float64 here - do we want to differentiate states?
-struct LinearElasticState{dim, T, M}
+struct LinearElasticState{dim, T, M} <: AbstractMaterialState
     σ::SymmetricTensor{2,dim,T,M} # stress
 end
 

@@ -1,6 +1,8 @@
 using MaterialModels
 using Test
+using Rotations
 
-@testset "MaterialModels.jl" begin
-    include("linear_elastic.jl")
-end
+
+include("test_utils.jl")
+include("test_linear_elastic.jl")
+include("test_plastic.jl")
