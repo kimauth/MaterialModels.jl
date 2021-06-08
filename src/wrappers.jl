@@ -20,7 +20,7 @@ increase_dim(A::SymmetricTensor{2,dim,T}) where {dim, T} = SymmetricTensor{2,3}(
 function material_response(
     dim::Union{Dim{d}, UniaxialStrain{d}, PlaneStrain{d}},
     m::AbstractMaterial,
-    Δε::SymmetricTensor{2,d,T,3},
+    Δε::AbstractTensor{2,d,T},
     state::AbstractMaterialState,
     Δt = nothing;
     cache = nothing,
@@ -43,13 +43,13 @@ function material_response(
     cache =  get_cache(dim, get_stress_type(state)),
     options = Dict{Symbol, Any}(),
     ) where {d, T}
-
+    
     tol = get(options, :plane_stress_tol, 1e-8)
     max_iter = get(options, :plane_stress_max_iter, 10)
     converged = false
 
     Δε_3D = increase_dim(Δε)
-
+    
     oop_idxs = get_zero_indices(dim, Δε_3D)
     ip_idxs = get_nonzero_indices(dim, Δε_3D)
     
@@ -57,7 +57,7 @@ function material_response(
     fill!(Δε_voigt, 0.0)
     σ_mandel = cache.F
     J = cache.DF
-
+    
     for _ in 1:max_iter
         σ, ∂σ∂ε, temp_state = material_response(m, Δε_3D, state, Δt; cache=cache, options=options)
         tomandel!(σ_mandel, σ)
@@ -67,6 +67,7 @@ function material_response(
             return reduce_dim(σ, dim), ∂σ∂ε_2D, temp_state
         end
         tomandel!(J, ∂σ∂ε)
+        fill!(Δε_voigt, 0.0)
         Δε_voigt[oop_idxs] = -view(J, oop_idxs, oop_idxs) \ view(σ_mandel, oop_idxs)
         Δε_correction = frommandel(SymmetricTensor{2,3}, Δε_voigt)
         Δε_3D = Δε_3D + Δε_correction
