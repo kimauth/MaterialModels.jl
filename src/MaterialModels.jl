@@ -81,5 +81,6 @@ export material_response
 export AbstractMaterial
 export LinearElastic, Plastic
 export LinearElasticState, PlasticState
+export OneD, UniaxialStrain, UniaxialStress, PlaneStrain, PlaneStress
 
 end

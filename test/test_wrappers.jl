@@ -6,14 +6,14 @@
     # stress wrapper
     ################################################
     # 1D
-    dim = MaterialModels.UniaxialStress{1}()
+    dim = UniaxialStress{1}()
     Δε = rand(SymmetricTensor{2,1})
     σ, ∂σ∂ε, temp_state = material_response(dim, m, Δε, state)
     @test ∂σ∂ε[1] ≈ m.E
     @test σ ≈ m.E*Δε
 
     # 2D
-    dim = MaterialModels.PlaneStress{2}()
+    dim = PlaneStress{2}()
     Δε = rand(SymmetricTensor{2,2})
     σ, ∂σ∂ε, temp_state = material_response(dim, m, Δε, state)
     @test σ ≈ ∂σ∂ε ⊡ Δε
@@ -23,7 +23,7 @@
     # strain wrapper
     ################################################
     # 1D
-    dim = MaterialModels.UniaxialStrain{1}()
+    dim = UniaxialStrain{1}()
     Δε = rand(SymmetricTensor{2,1})
     σ, ∂σ∂ε, temp_state = material_response(dim, m, Δε, state)
     Δε_3D = SymmetricTensor{2,3}((i,j)-> i==1 && j==1 ? Δε[1,1] : 0.0)
@@ -32,7 +32,7 @@
     @test ∂σ∂ε[1,1,1,1] == ∂σ∂ε_3D[1,1,1,1]
 
     # 2D
-    dim = MaterialModels.PlaneStrain{2}()
+    dim = PlaneStrain{2}()
     Δε = rand(SymmetricTensor{2,2})
     σ, ∂σ∂ε, temp_state = material_response(dim, m, Δε, state)
     @test σ ≈ ∂σ∂ε ⊡ Δε
