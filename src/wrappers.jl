@@ -40,7 +40,7 @@ function material_response(
     Δε::AbstractTensor{2,d,T},
     state::AbstractMaterialState,
     Δt = nothing;
-    cache =  get_cache(dim, get_stress_type(state)),
+    cache =  get_cache(m),
     options = Dict{Symbol, Any}(),
     ) where {d, T}
     
@@ -97,8 +97,11 @@ end
 get_stress_type(state::AbstractMaterialState) = typeof(state.σ)
 
 # fallback for optional cache argument
-function get_cache(::Union{UniaxialStress, PlaneStress}, ::Type{TT}) where {dim, T, TT<:AbstractTensor{2,dim,T}}
-    M = Tensors.n_components(Tensors.get_base(TT))
+function get_cache(m::AbstractMaterial)
+    state = initial_material_state(m)
+    stress_type = get_stress_type(state)
+    T = eltype(stress_type)
+    M = Tensors.n_components(Tensors.get_base(stress_type))
     cache = PlaneStressCache(Vector{T}(undef,M), Matrix{T}(undef,M,M), Vector{T}(undef,M))
     return cache
 end
