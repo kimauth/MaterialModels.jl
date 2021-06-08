@@ -73,6 +73,7 @@ include("CrystalViscoPlastic/CrystalViscoPlastic.jl")
 include("CrystalViscoPlastic/CrystalViscoPlasticRed.jl")
 
 include("nonlinear_solver.jl")
+include("wrappers.jl")
 
 export initial_material_state, get_cache
 export material_response
