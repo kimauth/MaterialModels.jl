@@ -18,7 +18,7 @@ Elastic(;E, ν) = Elastic(E, ν)    # Keyword argument constructor
 # Elastic material
 get_cache(::Elastic) = nothing
 
-function material_response(material::Elastic, ϵ::SymmetricTensor{2,3}, state_old::ChabocheState{Nkin,T,N}, Δt::AbstractFloat; cache=get_cache(material), options::Dict{Symbol, Any} = Dict{Symbol, Any}()) where {T,N,Nkin}
+function material_response(material::Elastic, ϵ::SymmetricTensor{2,3}, state_old, Δt::AbstractFloat; cache=get_cache(material), options::Dict{Symbol, Any} = Dict{Symbol, Any}())
     ν = (3material.K - 2material.G)/(2*(3material.K+material.G))    # Calculate poissons ratio
     
     σ = 2 * material.G*dev(ϵ) + 3 * material.K*vol(ϵ)   # Calculate stress

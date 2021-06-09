@@ -11,6 +11,7 @@ struct Chaboche{T,ElasticType,IsoType,KinType}
     isotropic::IsoType      # Tuple of isotropic hardening definitions
     kinematic::KinType      # Tuple of kinematic hardening definitions
 end
+Chaboche(;elastic, σ_y0, isotropic, kinematic) = Chaboche(elastic, σ_y0, isotropic, kinematic)
 
 # Definition of material state
 struct ChabocheState{Nkin,T,N}
@@ -29,22 +30,22 @@ function ChabocheResidual(λ::Tλ,σ_red_dev::SymmetricTensor{2,3,Tσ,N_tens}) w
     ChabocheResidual{0,Tλ,Tσ,Float64,N_tens}(λ,σ_red_dev,())
 end
 
-Tensors.get_base(::Type{ChabocheResidual}) = ChabocheResidual # needed for frommandel
+Tensors.get_base(::Type{<:ChabocheResidual{NKin_R}}) where{NKin_R} = ChabocheResidual{NKin_R} # needed for frommandel
 
 function Tensors.tomandel!(v::AbstractVector{T}, r::ChabocheResidual{NKin_R,Tλ,Tσ,Tβ,N_tens}) where {T,NKin_R,Tλ,Tσ,Tβ,N_tens}
     v[1] = r.λ
     tomandel!(v, r.σ_red_dev, offset=1)
     for i=1:NKin_R
-        tomandel!(v, r.β1[i], offset=1+N_tens*6)
+        tomandel!(v, r.β1[i], offset=1+N_tens*i)
     end
     return v
 end
 
-function Tensors.frommandel(::Type{ChabocheResidual{NKin_R,Tλ,Tσ,Tβ,N_tens}}, v::AbstractVector{Tv}) where {Tv,NKin_R,Tλ,Tσ,Tβ,N_tens}
+function Tensors.frommandel(::Type{<:ChabocheResidual{NKin_R}}, v::AbstractVector{Tv}) where {Tv,NKin_R}
     λ = v[1]
-    σ_red_dev = frommandel(SymmetricTensor{2,3,Tv}, v, offset=1)
+    σ_red_dev = frommandel(SymmetricTensor{2,3}, v, offset=1)
     if NKin_R > 0
-        β1 = ntuple(i->frommandel(SymmetricTensor{2,3,Tv}, v, offset=1+N_tens*i), NKin_R)
+        β1 = ntuple(i->frommandel(SymmetricTensor{2,3,Tv}, v, offset=1+6*i), NKin_R)
         return ChabocheResidual(λ,σ_red_dev,β1)
     else
         return ChabocheResidual(λ,σ_red_dev)
@@ -77,7 +78,7 @@ function get_cache(material::Chaboche{T,ElType,IsoType,KinType}) where {T,ElType
     σ_trial_dev = zero(SymmetricTensor{2,3,T})
     X_tensor = initial_guess(material, state_tmp, zero(SymmetricTensor{2,3,T}))
     rf_tens(X_tensor) = residual(X_tensor, material, state_tmp, σ_trial_dev)
-    rf!(R, X) = vector_residual!(rf_tens, R, X, typeof(X_tensor))
+    rf!(R, X) = vector_residual!(rf_tens, R, X, X_tensor)
     X0 = MVector{nx}(zeros(T, nx))
     # X0 only for shape and type information here:
     R_X_oncediff = OnceDifferentiable(rf!, X0, X0; autodiff = :forward)
@@ -130,7 +131,7 @@ function get_plastic_output(cache::ChabocheCache, material::Chaboche, state_old:
     # - Stress function
     σ_X(X_arg) = get_sigma(material, state_old, X_arg, ϵ)
     # - Stress (vector) function:
-    σ_X_vec!(σv_arg, Xv_arg) = vector_residual!(σ_X, σv_arg, Xv_arg, typeof(X_tensor))
+    σ_X_vec!(σv_arg, Xv_arg) = vector_residual!(σ_X, σv_arg, Xv_arg, X_tensor)
     σ_vec = cache.v6
     # - Preallocate (should have been done beforehand, problem with Dual Tag values?)
     cfg = ForwardDiff.JacobianConfig(σ_X_vec!, σ_vec, X_vec, ForwardDiff.Chunk{length(X_vec)}())
@@ -145,7 +146,7 @@ function get_plastic_output(cache::ChabocheCache, material::Chaboche, state_old:
     # - Specialized residual (tensor) function:
     R_ϵ(ϵ_arg) = residual(X_tensor, material, state_old, ϵ_arg)
     # - Specialized residual (vector) function:
-    R_ϵ_vec!(Rv_arg, ϵv_arg) = vector_residual!(R_ϵ, Rv_arg, ϵv_arg, SymmetricTensor{2,3})
+    R_ϵ_vec!(Rv_arg, ϵv_arg) = vector_residual!(R_ϵ, Rv_arg, ϵv_arg, ϵ)
     ϵ_vec = cache.v6    # Use cache value (give name that makes more sense)
     tomandel!(ϵ_vec, ϵ)
     # - Preallocate (should have been done beforehand, problem with Dual Tag values?)
@@ -196,7 +197,7 @@ function solve_local_problem!(cache::ChabocheCache, material::Chaboche, state_ol
     
     X_tensor = initial_guess(material, state_old, ϵ)
     rf_tens(X_tensor_arg) = residual(X_tensor_arg, material, state_old, ϵ)
-    rf!(R, X) = vector_residual!(rf_tens, R, X, typeof(X_tensor))
+    rf!(R, X) = vector_residual!(rf_tens, R, X, X_tensor)
     update_cache!(cache.R_X_oncediff, rf!)
     
     tomandel!(cache.R_X_oncediff.x_f, X_tensor)
