@@ -1,6 +1,6 @@
 using Tensors
 
-# Elasticity
+# Linear isotropic elasticity
 struct Elastic{T}
     G::T    # Shear modulus
     K::T    # Bulk modulus
@@ -13,9 +13,12 @@ function Elastic(E::Number, ν::Number)
     K = E / 3(1 - 2ν)
     return Elastic{T}(G, K)
 end
+Elastic(;E, ν) = Elastic(E, ν)    # Keyword argument constructor
 
 # Elastic material
-function material_model(cache, material::Elastic, ϵ::T2, state_old, Δt::AbstractFloat) where{T2<:SymmetricTensor{2,3,T}} where T
+get_cache(::Elastic) = nothing
+
+function material_response(material::Elastic, ϵ::SymmetricTensor{2,3}, state_old::ChabocheState{Nkin,T,N}, Δt::AbstractFloat; cache=get_cache(material), options::Dict{Symbol, Any} = Dict{Symbol, Any}()) where {T,N,Nkin}
     ν = (3material.K - 2material.G)/(2*(3material.K+material.G))    # Calculate poissons ratio
     
     σ = 2 * material.G*dev(ϵ) + 3 * material.K*vol(ϵ)   # Calculate stress

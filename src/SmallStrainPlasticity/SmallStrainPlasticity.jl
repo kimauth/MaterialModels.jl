@@ -89,7 +89,7 @@ end
 # Material model
 function material_response(material::Chaboche, ϵ::SymmetricTensor{2,3}, state_old::ChabocheState{Nkin,T,N}, Δt::AbstractFloat; cache=get_cache(material), options::Dict{Symbol, Any} = Dict{Symbol, Any}()) where {T,N,Nkin}
     
-    σ_trial, dσdϵ_elastic, _, _ = material_model(cache, material.elastic, ϵ-state_old.ϵₚ, nothing, Δt)
+    σ_trial, dσdϵ_elastic, _, _ = material_response(material.elastic, ϵ-state_old.ϵₚ, nothing, Δt)
 
     Φ_trial = yieldCriterion(material, σ_trial-sum(state_old.β), state_old.λ)
     if Φ_trial < 0
