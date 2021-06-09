@@ -88,7 +88,7 @@ export LinearElastic, Plastic
 export LinearElasticState, PlasticState
 
 export Chaboche
-export Elastic
+export LinearIsotropicElasticity
 export Iso_Voce, Iso_Swift
 export Kin_AF, Kin_DB, Kin_OW
 
