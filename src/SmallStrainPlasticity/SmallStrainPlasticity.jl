@@ -87,8 +87,41 @@ function get_cache(material::Chaboche{T,ElType,IsoType,KinType}) where {T,ElType
                          R_X_oncediff, R_X_newton)
 end
 
-# Material model
-function material_response(material::Chaboche, ϵ::SymmetricTensor{2,3}, state_old::ChabocheState{Nkin,T,N}, Δt::AbstractFloat; cache=get_cache(material), options::Dict{Symbol, Any} = Dict{Symbol, Any}()) where {T,N,Nkin}
+"""
+    material_response(m::Plastic, ϵ::SymmetricTensor{2,3}, state::ChabocheState, Δt; <keyword arguments>)
+
+Return the stress tensor, stress tangent, the new `MaterialState` and boolean if local iterations converged for the given strain ε and previous material state `state`.
+
+Von Mises yield function:
+```math
+\\Phi = \\sqrt{\\frac{3}{2}} \\left| \\text{dev} \\left( \\boldsymbol{\\sigma} - \\boldsymbol{\\alpha} \\right) \\right| - \\sigma_y - \\kappa
+```
+Associative plastic flow:
+```math
+\\dot{\\epsilon}_{\\mathrm{p}} = \\dot{\\lambda} \\frac{\\partial \\Phi}{\\boldsymbol{\\sigma}}
+= \\dot{\\lambda} \\boldsymbol{\\nu}
+```
+
+Isotropic hardening is formulated as
+```math
+\\kappa = \\sum_{i=1}^{N_{\\mathrm{iso}}} g_{\\mathrm{iso},i}(\\lambda)
+```
+where ``$g_{\\mathrm{iso},i}(\\lambda)$`` is specified by structs of subtype to `AbstractIsoHard`
+
+Kinematic hardening is formulated as
+```math
+\\boldsymbol{\\beta}_i = \\dot{\\lambda} g_{\\mathrm{kin},i}(\\nu, \\boldsymbol{\\beta}_i)
+```
+where ``$g_{\\mathrm{kin},i}(\\boldsymbol{\\nu}, \\boldsymbol{\\beta}_i)$`` is specified by structs of subtype to `AbstractKinHard`
+and ``i\\in[1,N_\\mathrm{kin}]``. 
+
+```
+# Keyword arguments
+- `cache`: Cache for the iterative solver, used by NLsolve.jl. It is strongly recommended to pre-allocate the cache for repeated calls to `material_response`. See [`get_cache`](@ref).
+- `options::Dict{Symbol, Any}`: Solver options for the non-linear solver. Under the key `:nlsolve_params` keyword arguments for `nlsolve` can be handed over.
+See [NLsolve documentation](https://github.com/JuliaNLSolvers/NLsolve.jl#common-options). By default the Newton solver will be used.
+"""
+function material_response(material::Chaboche, ϵ::SymmetricTensor{2,3}, state_old::ChabocheState{Nkin,T,N}, Δt; cache=get_cache(material), options::Dict{Symbol, Any} = Dict{Symbol, Any}()) where {T,N,Nkin}
     
     σ_trial, dσdϵ_elastic, _, _ = material_response(material.elastic, ϵ-state_old.ϵₚ, nothing, Δt)
 
@@ -100,7 +133,7 @@ function material_response(material::Chaboche, ϵ::SymmetricTensor{2,3}, state_o
         LinearAlgebra.BLAS.set_num_threads(1)                   # Big performance benefit, takes ~8ns
         converged = solve_local_problem!(cache, material, state_old, ϵ, options)
         if converged
-            σ, dσdϵ, state = get_plastic_output(cache, material, state_old, σ_trial, dσdϵ_elastic, options)
+            σ, dσdϵ, state = get_plastic_output(cache, material, state_old, σ_trial, dσdϵ_elastic)
         else
             σ, dσdϵ, state = (σ_trial, dσdϵ_elastic, state_old)
             println("Did not converge!")
@@ -113,7 +146,7 @@ end
 
 include("Residual.jl")
 
-function get_plastic_output(cache::ChabocheCache, material::Chaboche, state_old::ChabocheState{NKin,Ts,N}, ϵ::SymmetricTensor{2,3}, dσdϵ_elastic::SymmetricTensor{4,3}, options::Dict{Symbol, Any}) where {NKin,Ts,N}
+function get_plastic_output(cache::ChabocheCache, material::Chaboche, state_old::ChabocheState{NKin,Ts,N}, ϵ::SymmetricTensor{2,3}, dσdϵ_elastic::SymmetricTensor{4,3}) where {NKin,Ts,N}
     # σ = σ(X(ϵ), ϵ) yields
     # dσ/dϵ = ∂σ/∂ϵ + ∂σ/∂X : dX/dϵ              [1]
     # R = R(X(ϵ), ϵ) yields
