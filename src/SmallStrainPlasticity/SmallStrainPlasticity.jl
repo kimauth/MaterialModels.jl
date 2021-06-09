@@ -106,13 +106,13 @@ Isotropic hardening is formulated as
 ```math
 \\kappa = \\sum_{i=1}^{N_{\\mathrm{iso}}} g_{\\mathrm{iso},i}(\\lambda)
 ```
-where ``$g_{\\mathrm{iso},i}(\\lambda)$`` is specified by structs of subtype to `AbstractIsoHard`
+where ``g_{\\mathrm{iso},i}(\\lambda)`` is specified by structs of subtype to `AbstractIsoHard`
 
 Kinematic hardening is formulated as
 ```math
 \\boldsymbol{\\beta}_i = \\dot{\\lambda} g_{\\mathrm{kin},i}(\\nu, \\boldsymbol{\\beta}_i)
 ```
-where ``$g_{\\mathrm{kin},i}(\\boldsymbol{\\nu}, \\boldsymbol{\\beta}_i)$`` is specified by structs of subtype to `AbstractKinHard`
+where ``g_{\\mathrm{kin},i}(\\boldsymbol{\\nu}, \\boldsymbol{\\beta}_i)`` is specified by structs of subtype to `AbstractKinHard`
 and ``i\\in[1,N_\\mathrm{kin}]``. 
 
 ```
@@ -256,11 +256,11 @@ function get_sigma(material::Chaboche, state_old::ChabocheState, X::ChabocheResi
     return σ
 end
 
-function calc_sigma(material::Elastic, state_old::ChabocheState, ϵ, ν, Δλ)
+function calc_sigma(material::LinearIsotropicElasticity, state_old::ChabocheState, ϵ, ν, Δλ)
     return 3 * material.K*vol(ϵ) + calc_sigma_dev(material, state_old, ϵ, Δλ, ν)
 end
 
-function calc_sigma_dev(material::Elastic, state_old::ChabocheState, ϵ, ν, Δλ)
+function calc_sigma_dev(material::LinearIsotropicElasticity, state_old::ChabocheState, ϵ, ν, Δλ)
     return 2 * material.G * (dev(ϵ - state_old.ϵₚ) - Δλ*ν)
 end
 
