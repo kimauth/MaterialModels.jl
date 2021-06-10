@@ -5,7 +5,7 @@ include("KinematicHardening.jl")
 
 
 # Definition of material properties
-struct Chaboche{T,ElasticType,IsoType,KinType}
+struct Chaboche{T,ElasticType,IsoType,KinType} <:AbstractMaterial
     elastic::ElasticType    # Elastic definition
     σ_y0::T                 # Initial yield limit
     isotropic::IsoType      # Tuple of isotropic hardening definitions
@@ -14,13 +14,13 @@ end
 Chaboche(;elastic, σ_y0, isotropic, kinematic) = Chaboche(elastic, σ_y0, isotropic, kinematic)
 
 # Definition of material state
-struct ChabocheState{Nkin,T,N}
+struct ChabocheState{Nkin,T,N} <:AbstractMaterialState
     ϵₚ::SymmetricTensor{2,3,T,N}
     λ::T
     β::NTuple{Nkin, SymmetricTensor{2,3,T,N}}
 end
 
-struct ChabocheResidual{NKin_R,Tλ,Tσ,Tβ,N_tens}
+struct ChabocheResidual{NKin_R,Tλ,Tσ,Tβ,N_tens}  <:AbstractResiduals
     λ::Tλ
     σ_red_dev::SymmetricTensor{2,3,Tσ,N_tens}
     β1::NTuple{NKin_R, SymmetricTensor{2,3,Tβ,N_tens}}

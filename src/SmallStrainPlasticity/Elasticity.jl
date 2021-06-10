@@ -1,5 +1,5 @@
 using Tensors
-abstract type AbstractElasticity{T} end
+abstract type AbstractElasticity{T} <:AbstractMaterial end
 # Linear isotropic elasticity
 struct LinearIsotropicElasticity{T} <:AbstractElasticity{T}
     G::T    # Shear modulus
