@@ -88,31 +88,48 @@ function get_cache(material::Chaboche{T,ElType,IsoType,KinType}) where {T,ElType
 end
 
 """
-    material_response(m::Plastic, ϵ::SymmetricTensor{2,3}, state::ChabocheState, Δt; <keyword arguments>)
+    material_response(m::Chaboche, ϵ::SymmetricTensor{2,3}, state::ChabocheState, Δt; <keyword arguments>)
 
-Return the stress tensor, stress tangent, the new `MaterialState` and boolean if local iterations converged for the given strain ε and previous material state `state`.
+Return the stress tensor, stress tangent, the new `MaterialState` and a boolean specifying if local iterations converged. 
+The total strain ε and previous material state `state` are given as input, Δt has no influence as the material is rate independent.
+
+By specifying different laws in `m.elastic`, `m.isotropic`, and `m.kinematic`, different models can be obtained, 
+within the general equations specified below. Note that `m.isotropic` and `m.kinematic` are of type Tuple, in which each
+element contain a hardening law of type ``AbstractiIsoHard`` and ``AbstractKinHard``, respectively. 
+
+The stress is calculated from the elastic strains, ``\\boldsymbol{\\epsilon}_\\mathrm{e}``, obtained via the 
+additive decomposition, ``\\boldsymbol{\\epsilon} = \\boldsymbol{\\epsilon}_\\mathrm{e} + \\boldsymbol{\\epsilon}_\\mathrm{p}``. 
+The elastic law, i.e. `` is specified by `m.elastic`
 
 Von Mises yield function:
 ```math
-\\Phi = \\sqrt{\\frac{3}{2}} \\left| \\text{dev} \\left( \\boldsymbol{\\sigma} - \\boldsymbol{\\alpha} \\right) \\right| - \\sigma_y - \\kappa
+\\Phi = \\sqrt{\\frac{3}{2}} \\left| \\text{dev} \\left( \\boldsymbol{\\sigma} - \\boldsymbol{\\beta} \\right) \\right| - \\sigma_y - \\kappa
 ```
-Associative plastic flow:
+where ``\\boldsymbol{\\beta} = \\sum_{i=1}^{N_\\mathrm{kin} \\boldsymbol{\\beta}_i`` is the total back-stress. 
+The evolution of ``\\boldsymbol{\\beta}_i`` is given by the kinematic hardening, specified below and using `m.kinematic`
+
+Associative plastic flow is used to obtain the plastic strains,
 ```math
 \\dot{\\epsilon}_{\\mathrm{p}} = \\dot{\\lambda} \\frac{\\partial \\Phi}{\\boldsymbol{\\sigma}}
 = \\dot{\\lambda} \\boldsymbol{\\nu}
 ```
 
-Isotropic hardening is formulated as
+The plastic multiplier, ``\\lambda``, is obtained via the KKT-conditions,
+```math
+\\dot{\\lambda} \\geq 0, \\quad \\Phi \\leq 0, \\quad \\dot{\\lambda}\\Phi = 0
+```
+
+The isotropic hardening is formulated as
 ```math
 \\kappa = \\sum_{i=1}^{N_{\\mathrm{iso}}} g_{\\mathrm{iso},i}(\\lambda)
 ```
-where ``g_{\\mathrm{iso},i}(\\lambda)`` is specified by structs of subtype to `AbstractIsoHard`
+where ``g_{\\mathrm{iso},i}(\\lambda)`` is specified by `m.isotropic[i]`
 
 Kinematic hardening is formulated as
 ```math
 \\boldsymbol{\\beta}_i = \\dot{\\lambda} g_{\\mathrm{kin},i}(\\nu, \\boldsymbol{\\beta}_i)
 ```
-where ``g_{\\mathrm{kin},i}(\\boldsymbol{\\nu}, \\boldsymbol{\\beta}_i)`` is specified by structs of subtype to `AbstractKinHard`
+where ``g_{\\mathrm{kin},i}(\\boldsymbol{\\nu}, \\boldsymbol{\\beta}_i)`` is specified by `m.kinematic[i]`
 and ``i\\in[1,N_\\mathrm{kin}]``. 
 
 ```
