@@ -6,10 +6,9 @@ using NLsolve
 using Rotations
 import ForwardDiff
 import DiffResults
-using TimerOutputs
 using StaticArrays
 
-# Write your package code here.
+
 """
     AbstractMaterial
 
