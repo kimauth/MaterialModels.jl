@@ -1,4 +1,3 @@
-using Tensors
 abstract type AbstractElasticity <:AbstractMaterial end
 # Linear isotropic elasticity
 struct LinearIsotropicElasticity{T} <:AbstractElasticity
