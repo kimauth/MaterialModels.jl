@@ -1,8 +1,8 @@
 # Isotropic hardening
-abstract type AbstractIsoHard{T} end
+abstract type AbstractIsoHard end
 
 # Voce type of isotropic hardening (exponentially saturating)
-struct Iso_Voce{T} <:AbstractIsoHard{T}
+struct Iso_Voce{T} <:AbstractIsoHard
     Hiso::T     # Initial hardening modulus
     κ∞::T       # Saturation stress
 end
@@ -13,7 +13,7 @@ function IsotropicHardening(param::Iso_Voce, λ::Number)
 end
 
 # Swift type of kinematic hardening (power law)
-struct Iso_Swift{T} <:AbstractIsoHard{T}
+struct Iso_Swift{T} <:AbstractIsoHard
     K::T
     λ0::T
     n::T 

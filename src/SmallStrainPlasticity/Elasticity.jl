@@ -1,7 +1,7 @@
 using Tensors
-abstract type AbstractElasticity{T} <:AbstractMaterial end
+abstract type AbstractElasticity <:AbstractMaterial end
 # Linear isotropic elasticity
-struct LinearIsotropicElasticity{T} <:AbstractElasticity{T}
+struct LinearIsotropicElasticity{T} <:AbstractElasticity
     G::T    # Shear modulus
     K::T    # Bulk modulus
 end

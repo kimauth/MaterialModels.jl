@@ -1,10 +1,10 @@
 using Tensors
 
 # Kinematic hardening
-abstract type AbstractKinHard{T} end
+abstract type AbstractKinHard end
 
 # Armstrong-Frederick 
-struct Kin_AF{T} <: AbstractKinHard{T}
+struct Kin_AF{T} <: AbstractKinHard
     Hkin::T     # Initial hardening modulus
     β∞::T       # Saturation stress
 end
@@ -24,7 +24,7 @@ function KinematicEvolution(param::Kin_AF, 𝛎::SecondOrderTensor, 𝛃ᵢ::Sec
 end
 
 # Delobelle (Combination of Armstrong-Frederick and Burlet-Cailletaud)
-struct Kin_DB{T} <: AbstractKinHard{T}
+struct Kin_DB{T} <: AbstractKinHard
     Hkin::T     # Initial hardening modulus
     β∞::T       # Saturation stress
     δ::T        # Amount of Armstrong-Frederick hardening
@@ -51,7 +51,7 @@ function KinematicEvolution(param::Kin_DB, 𝛎::SecondOrderTensor, 𝛃ᵢ::Sec
 end
 
 # Ohno-Wang
-struct Kin_OW{T} <: AbstractKinHard{T}
+struct Kin_OW{T} <: AbstractKinHard
     Hkin::T     # Initial hardening modulus
     β∞::T       # Saturation stress
     mexp::T     # Ohno Wang exponent
