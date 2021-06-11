@@ -4,4 +4,5 @@ makedocs(sitename="MaterialModels.jl",  format = Documenter.HTML(prettyurls = fa
 
 deploydocs(
     repo = "github.com/kimauth/MaterialModels.jl.git",
+    devbranch = "main",
 )
