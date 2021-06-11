@@ -1,16 +1,7 @@
 
 #utility function for checking checksums of materials...
-function check_checksum(material::MaterialModels.AbstractMaterial, loading::Vector, filename::String; 
-                        OVERWRITE_CHECKSUMS::Bool = false, debug_print::Bool = false)
-
-    #  
-    checksums_file = joinpath(dirname(@__FILE__), "checksums", string(filename,".sha1"))
-
-    if OVERWRITE_CHECKSUMS
-        csio = open(checksums_file, "w")
-    else
-        csio = open(checksums_file, "r")
-    end
+function check_jld2(material::MaterialModels.AbstractMaterial, loading::Vector, filename::String; 
+                        OVERWRITE_JLD2::Bool = false, debug_print::Bool = false)
 
     state = initial_material_state(material)
     stresses = []; tangents = [];
@@ -29,15 +20,13 @@ function check_checksum(material::MaterialModels.AbstractMaterial, loading::Vect
         push!(tangents, tangent)
     end
 
-    checkhash1 = string(hash(stresses))
-    checkhash2 = string(hash(tangents))
-    if OVERWRITE_CHECKSUMS
-        write(csio, checkhash1, "\n")
-        write(csio, checkhash2, "\n")
-        close(csio)
+    jld2_file = joinpath(@__DIR__, "jld2_files", string(filename, ".jld2"))
+    if OVERWRITE_JLD2
+        jldsave(jld2_file; stresses_jld2=stresses, tangents_jld2=tangents)
     else
-        @test chomp(readline(csio)) == checkhash1
-        @test chomp(readline(csio)) == checkhash2
+        stresses_jld2, tangents_jld2 = load(jld2_file, "stresses_jld2", "tangents_jld2")
+        @test stresses ≈ stresses_jld2
+        @test tangents ≈ tangents_jld2
     end
 
 end
