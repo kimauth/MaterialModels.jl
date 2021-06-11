@@ -9,7 +9,7 @@ end
 KinematicHardeningAF(;Hkin, β∞) = KinematicHardeningAF(Hkin, β∞)    # Keyword argument constructor
 
 """
-    KinematicEvolution(param::KinematicHardeningAF, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor)
+    get_evolution(param::KinematicHardeningAF, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor)
 
     Armstrong-Frederick kinematic hardening law
 
@@ -17,7 +17,7 @@ KinematicHardeningAF(;Hkin, β∞) = KinematicHardeningAF(Hkin, β∞)    # Keyw
     g_{\\mathrm{kin},i}(\\nu, \\beta_i) = Hkin (\\frac{2}{3}\\boldsymbol{\\nu} - \\frac{\\boldsymbol{\\beta}_i}{\\beta_\\infty})
     ```
 """
-function KinematicEvolution(param::KinematicHardeningAF, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor)
+function get_evolution(param::KinematicHardeningAF, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor)
     param.Hkin * ((2.0/3.0) * 𝛎 - 𝛃ᵢ/param.β∞)
 end
 
@@ -30,7 +30,7 @@ end
 KinematicHardeningDB(;Hkin, β∞, δ) = KinematicHardeningDB(Hkin, β∞, δ)    # Keyword argument constructor
 
 """
-    KinematicEvolution(param::KinematicHardeningDB, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor)
+    get_evolution(param::KinematicHardeningDB, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor)
 
     Kinematic hardening law according to Delobelle, which combines the Armstrong-Frederick law with the Burlet-Cailletaud law
 
@@ -42,7 +42,7 @@ KinematicHardeningDB(;Hkin, β∞, δ) = KinematicHardeningDB(Hkin, β∞, δ)  
     ```
     
 """
-function KinematicEvolution(param::Kin_DB, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor)
+function get_evolution(param::KinematicHardeningDB, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor)
     AF_Term = (param.δ/param.β∞) * 𝛃ᵢ                        # Armstrong Frederick term
     BC_Term = (2.0/3.0) * (1.0-param.δ)*((ν⊡𝛃ᵢ)/param.β∞)*ν  # Burlet Cailletaud term
     return param.Hkin * ((2.0/3.0) * 𝛎 - AF_Term - BC_Term)  # Complete evolution 
@@ -57,7 +57,7 @@ end
 KinematicHardeningOW(;Hkin, β∞, mexp) = KinematicHardeningOW(Hkin, β∞, mexp)    # Keyword argument constructor
 
 """ 
-    KinematicEvolution(param::KinematicHardeningOW{Tp}, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor{dim,Tβ}) where{Tp,Tβ,dim}
+    get_evolution(param::KinematicHardeningOW{Tp}, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor{dim,Tβ}) where{Tp,Tβ,dim}
 
     Kinematic hardening law according to Ohno-Wang
 
@@ -70,7 +70,7 @@ KinematicHardeningOW(;Hkin, β∞, mexp) = KinematicHardeningOW(Hkin, β∞, mex
     ```
     
 """
-function KinematicEvolution(param::KinematicHardeningOW{Tp}, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor{dim,Tβ}) where{Tp,Tβ,dim}
+function get_evolution(param::KinematicHardeningOW{Tp}, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor{dim,Tβ}) where{Tp,Tβ,dim}
     β_vm = vonMisesDev(𝛃ᵢ)
     if β_vm < param.β∞ * eps(promote_type(Tp,Tβ))
         return param.Hkin * (2.0/3.0) * 𝛎 + 0*𝛃ᵢ

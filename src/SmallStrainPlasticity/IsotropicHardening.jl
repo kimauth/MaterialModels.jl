@@ -8,7 +8,7 @@ struct IsotropicHardeningVoce{T} <:AbstractIsotropicHardening
 end
 IsotropicHardeningVoce(;Hiso, κ∞) = IsotropicHardeningVoce(Hiso, κ∞)    # Keyword argument constructor
 
-function IsotropicHardening(param::IsotropicHardeningVoce, λ::Number)
+function get_hardening(param::IsotropicHardeningVoce, λ::Number)
     param.κ∞ * (1.0 - exp(-param.Hiso * λ / param.κ∞))
 end
 
@@ -20,7 +20,7 @@ struct IsotropicHardeningSwift{T} <:AbstractIsotropicHardening
 end
 IsotropicHardeningSwift(;K, λ0, n) = IsotropicHardeningSwift(K, λ0, n)    # Keyword argument constructor
 
-function IsotropicHardening(param::IsotropicHardeningSwift, λ::Number)
+function get_hardening(param::IsotropicHardeningSwift, λ::Number)
     param.K * (param.λ0 + λ)^n
 end
 

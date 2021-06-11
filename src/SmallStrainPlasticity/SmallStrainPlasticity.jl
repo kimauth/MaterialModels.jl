@@ -175,12 +175,12 @@ function residual(X::ChabocheResidual{NKin_R}, material::Chaboche, old::Chaboche
     if NKin_R > 0
         β_hat0 = σ_dev - X.σ_red_dev - sum(X.β1)
         β_hat1 = X.β1
-        β1 = ntuple(i->old.β[i+1] + Δλ * KinematicEvolution(material.kinematic[i+1], ν, β_hat1[i]), Val{NKin_R}())
+        β1 = ntuple(i->old.β[i+1] + Δλ * get_evolution(material.kinematic[i+1], ν, β_hat1[i]), Val{NKin_R}())
     else
         β_hat0 = σ_dev - X.σ_red_dev
     end
 
-    β0 = old.β[1] + Δλ * KinematicEvolution(material.kinematic[1], ν, β_hat0)
+    β0 = old.β[1] + Δλ * get_evolution(material.kinematic[1], ν, β_hat0)
 
     if NKin_R > 0
         σ_red_dev = σ_dev - β0 - sum(β1)
@@ -202,7 +202,7 @@ function residual(X::ChabocheResidual{0}, material::Chaboche, old::ChabocheState
     σ_dev = calc_sigma_dev(material.elastic, old, ϵ, ν, X.λ - old.λ)
     β_hat0 = σ_dev - X.σ_red_dev
     
-    β0 = old.β[1] + (X.λ - old.λ) * KinematicEvolution(material.kinematic[1], ν, β_hat0)
+    β0 = old.β[1] + (X.λ - old.λ) * get_evolution(material.kinematic[1], ν, β_hat0)
     
     σ_red_dev = σ_dev - β0
     
@@ -328,7 +328,7 @@ function calc_sigma_dev(material::LinearIsotropicElasticity, state_old::Chaboche
 end
 
 function yieldCriterion(material::Chaboche{Tp,ElType,IsoType,KinType}, σ_vm_red::Number, λ) where {Tp,ElType,IsoType<:NTuple{Niso,Any},KinType} where {Niso}
-    κ = sum(ntuple(i->IsotropicHardening(material.isotropic[i], λ), Val{Niso}()))
+    κ = sum(ntuple(i->get_hardening(material.isotropic[i], λ), Val{Niso}()))
     return σ_vm_red - (κ + material.σ_y0)
 end
 
