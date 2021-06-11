@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: main
+    tags: '*'
+
+jobs:
+  test:
+    name: Julia ${{ matrix.julia-version }} - ${{ matrix.os }} - ${{ github.event_name }}
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.julia-version == 'nightly' }}
+    strategy:
+      matrix:
+        julia-version: ['1.0', '1', 'nightly']
+        os: ['ubuntu-latest']
+        include:
+          - os: windows-latest
+            julia-version: '1'
+          - os: macOS-latest
+            julia-version: '1'
+    steps:
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.julia-version }}
+      - uses: julia-actions/julia-buildpkg@v1
+      - uses: julia-actions/julia-runtest@v1
+      - uses: julia-actions/julia-processcoverage@v1
+        if: ${{ matrix.julia-version == '1' && matrix.os == 'ubuntu-latest' }}
+      - uses: codecov/codecov-action@v1
+        if: ${{ matrix.julia-version == '1' && matrix.os == 'ubuntu-latest' }}
+        with:
+          file: lcov.info
