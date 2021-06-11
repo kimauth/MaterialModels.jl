@@ -5,6 +5,11 @@ struct UniaxialStrain{dim} <: AbstractDim{dim} end # 1D uniaxial strain state
 struct UniaxialStress{dim} <: AbstractDim{dim} end # 1D uniaxial stress state
 struct PlaneStrain{dim} <: AbstractDim{dim} end # 2D plane strain state
 struct PlaneStress{dim} <: AbstractDim{dim} end # 2D plane stress state
+# constructors without dim parameter
+UniaxialStrain() = UniaxialStrain{1}()
+UniaxialStress() = UniaxialStress{1}()
+PlaneStrain() = PlaneStrain{2}()
+PlaneStress() = PlaneStress{2}()
 
 reduce_dim(A::Tensor{1,3}, ::AbstractDim{dim}) where dim = Tensor{1,dim}(i->A[i])
 reduce_dim(A::Tensor{2,3}, ::AbstractDim{dim}) where dim = Tensor{2,dim}((i,j)->A[i,j])
@@ -50,8 +55,8 @@ function material_response(
 
     Δε_3D = increase_dim(Δε)
     
-    oop_idxs = get_zero_indices(dim, Δε_3D)
-    ip_idxs = get_nonzero_indices(dim, Δε_3D)
+    zero_idxs = get_zero_indices(dim, Δε_3D)
+    nonzero_idxs = get_nonzero_indices(dim, Δε_3D)
     
     Δε_voigt = cache.x_f
     fill!(Δε_voigt, 0.0)
@@ -61,14 +66,14 @@ function material_response(
     for _ in 1:max_iter
         σ, ∂σ∂ε, temp_state = material_response(m, Δε_3D, state, Δt; cache=cache, options=options)
         tomandel!(σ_mandel, σ)
-        if norm(view(σ_mandel, oop_idxs)) < tol
+        if norm(view(σ_mandel, zero_idxs)) < tol
             converged = true
-            ∂σ∂ε_2D = fromvoigt(SymmetricTensor{4,d}, inv(inv(tovoigt(∂σ∂ε))[ip_idxs, ip_idxs]))
+            ∂σ∂ε_2D = fromvoigt(SymmetricTensor{4,d}, inv(inv(tovoigt(∂σ∂ε))[nonzero_idxs, nonzero_idxs]))
             return reduce_dim(σ, dim), ∂σ∂ε_2D, temp_state
         end
         tomandel!(J, ∂σ∂ε)
         fill!(Δε_voigt, 0.0)
-        Δε_voigt[oop_idxs] = -view(J, oop_idxs, oop_idxs) \ view(σ_mandel, oop_idxs)
+        Δε_voigt[zero_idxs] = -view(J, zero_idxs, zero_idxs) \ view(σ_mandel, zero_idxs)
         Δε_correction = frommandel(SymmetricTensor{2,3}, Δε_voigt)
         Δε_3D = Δε_3D + Δε_correction
     end
