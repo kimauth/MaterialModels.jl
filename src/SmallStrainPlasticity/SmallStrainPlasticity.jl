@@ -95,7 +95,7 @@ The total strain ε and previous material state `state` are given as input, Δt 
 
 By specifying different laws in `m.elastic`, `m.isotropic`, and `m.kinematic`, different models can be obtained, 
 within the general equations specified below. Note that `m.isotropic` and `m.kinematic` are of type Tuple, in which each
-element contain a hardening law of type ``AbstractiIsoHard`` and ``AbstractKinHard``, respectively. 
+element contain a hardening law of type ``AbstractIsotropicHardening`` and ``AbstractKinematicHardening``, respectively. 
 
 The stress is calculated from the elastic strains, ``\\boldsymbol{\\epsilon}_\\mathrm{e}``, obtained via the 
 additive decomposition, ``\\boldsymbol{\\epsilon} = \\boldsymbol{\\epsilon}_\\mathrm{e} + \\boldsymbol{\\epsilon}_\\mathrm{p}``. 

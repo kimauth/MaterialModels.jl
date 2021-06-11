@@ -89,7 +89,7 @@ export LinearElasticState, PlasticState
 
 export Chaboche
 export LinearIsotropicElasticity
-export Iso_Voce, Iso_Swift
-export Kin_AF, Kin_DB, Kin_OW
+export IsotropicHardeningVoce, IsotropicHardeningSwift
+export KinematicHardeningAF, KinematicHardeningDB, KinematicHardeningOW
 
 end

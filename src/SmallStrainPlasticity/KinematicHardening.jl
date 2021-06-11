@@ -1,17 +1,15 @@
-using Tensors
-
 # Kinematic hardening
-abstract type AbstractKinHard end
+abstract type AbstractKinematicHardening end
 
 # Armstrong-Frederick 
-struct Kin_AF{T} <: AbstractKinHard
+struct KinematicHardeningAF{T} <: AbstractKinematicHardening
     Hkin::T     # Initial hardening modulus
     β∞::T       # Saturation stress
 end
-Kin_AF(;Hkin, β∞) = Kin_AF(Hkin, β∞)    # Keyword argument constructor
+KinematicHardeningAF(;Hkin, β∞) = KinematicHardeningAF(Hkin, β∞)    # Keyword argument constructor
 
 """
-    KinematicEvolution(param::Kin_AF, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor)
+    KinematicEvolution(param::KinematicHardeningAF, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor)
 
     Armstrong-Frederick kinematic hardening law
 
@@ -19,20 +17,20 @@ Kin_AF(;Hkin, β∞) = Kin_AF(Hkin, β∞)    # Keyword argument constructor
     g_{\\mathrm{kin},i}(\\nu, \\beta_i) = Hkin (\\frac{2}{3}\\boldsymbol{\\nu} - \\frac{\\boldsymbol{\\beta}_i}{\\beta_\\infty})
     ```
 """
-function KinematicEvolution(param::Kin_AF, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor)
+function KinematicEvolution(param::KinematicHardeningAF, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor)
     param.Hkin * ((2.0/3.0) * 𝛎 - 𝛃ᵢ/param.β∞)
 end
 
 # Delobelle (Combination of Armstrong-Frederick and Burlet-Cailletaud)
-struct Kin_DB{T} <: AbstractKinHard
+struct KinematicHardeningDB{T} <: AbstractKinematicHardening
     Hkin::T     # Initial hardening modulus
     β∞::T       # Saturation stress
     δ::T        # Amount of Armstrong-Frederick hardening
 end
-Kin_DB(;Hkin, β∞, δ) = Kin_DB(Hkin, β∞, δ)    # Keyword argument constructor
+KinematicHardeningDB(;Hkin, β∞, δ) = KinematicHardeningDB(Hkin, β∞, δ)    # Keyword argument constructor
 
 """
-    KinematicEvolution(param::Kin_DB, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor)
+    KinematicEvolution(param::KinematicHardeningDB, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor)
 
     Kinematic hardening law according to Delobelle, which combines the Armstrong-Frederick law with the Burlet-Cailletaud law
 
@@ -51,15 +49,15 @@ function KinematicEvolution(param::Kin_DB, 𝛎::SecondOrderTensor, 𝛃ᵢ::Sec
 end
 
 # Ohno-Wang
-struct Kin_OW{T} <: AbstractKinHard
+struct KinematicHardeningOW{T} <: AbstractKinematicHardening
     Hkin::T     # Initial hardening modulus
     β∞::T       # Saturation stress
     mexp::T     # Ohno Wang exponent
 end
-Kin_OW(;Hkin, β∞, mexp) = Kin_OW(Hkin, β∞, mexp)    # Keyword argument constructor
+KinematicHardeningOW(;Hkin, β∞, mexp) = KinematicHardeningOW(Hkin, β∞, mexp)    # Keyword argument constructor
 
 """ 
-    KinematicEvolution(param::Kin_OW{Tp}, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor{dim,Tβ}) where{Tp,Tβ,dim}
+    KinematicEvolution(param::KinematicHardeningOW{Tp}, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor{dim,Tβ}) where{Tp,Tβ,dim}
 
     Kinematic hardening law according to Ohno-Wang
 
@@ -72,7 +70,7 @@ Kin_OW(;Hkin, β∞, mexp) = Kin_OW(Hkin, β∞, mexp)    # Keyword argument con
     ```
     
 """
-function KinematicEvolution(param::Kin_OW{Tp}, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor{dim,Tβ}) where{Tp,Tβ,dim}
+function KinematicEvolution(param::KinematicHardeningOW{Tp}, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor{dim,Tβ}) where{Tp,Tβ,dim}
     β_vm = vonMisesDev(𝛃ᵢ)
     if β_vm < param.β∞ * eps(promote_type(Tp,Tβ))
         return param.Hkin * (2.0/3.0) * 𝛎 + 0*𝛃ᵢ

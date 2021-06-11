@@ -2,8 +2,8 @@
     # constructor
     m = Chaboche(elastic=LinearIsotropicElasticity(E=210.e3, ν=0.3),
                  σ_y0=100.0,
-                 isotropic=(Iso_Voce(Hiso=100000.0, κ∞=100.0),), # Can add more dragstresses by more entries in Tuple)
-                 kinematic=(Kin_AF(Hkin=1000000.0, β∞=200.0),)   # Can add more backstresses by more entries in Tuple
+                 isotropic=(IsotropicHardeningVoce(Hiso=100000.0, κ∞=100.0),), # Can add more dragstresses by more entries in Tuple)
+                 kinematic=(KinematicHardeningAF(Hkin=1000000.0, β∞=200.0),)   # Can add more backstresses by more entries in Tuple
     )
     cache = get_cache(m)
 
