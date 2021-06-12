@@ -28,3 +28,23 @@
     @test !(temp_state.α[i] ≈ 0.0)
     @test !(temp_state.μ[i] ≈ 0.0)
 end
+
+function get_visco_plastic_loading()
+    strain1 = range(0.0,  0.01, length=5)
+    strain2 = range(0.005, 0.001, length=5)
+    strain3 = range(0.001, 0.007, length=5)
+
+    # _C = [strain1..., strain2..., strain3...]
+    _C = [strain1[i]-strain1[i-1] for i=2:length(strain1)]
+    ε = [SymmetricTensor{2,3}((x, x/10, 0.0, 0.0, 0.0, 0.0)) for x in _C]
+
+    return ε
+end  
+
+@testset "CrystalViscoPlastic jld2" begin
+    slipsystems = MaterialModels.slipsystems(MaterialModels.FCC(),RodriguesParam(-0.665267, 0.0203875, 1.08633))
+    m = MaterialModels.CrystalViscoPlastic(E=200e3, ν=0.3, τ_y=400., H_iso=1e3, H_kin=1e3, q=0.0, α_∞=100., t_star=20., σ_c=50., m=10., slipsystems=slipsystems)
+
+    loading = get_visco_plastic_loading()
+    check_jld2(m, loading, "CrystalViscoPlastic1")#, debug_print=true, OVERWRITE_JLD2=true)
+end
