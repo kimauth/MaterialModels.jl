@@ -53,10 +53,10 @@ function get_Plastic_loading()
     return ε
 end  
 
-@testset "Plastic checksum" begin
+@testset "Plastic jld2" begin
     m = Plastic(E=200e3, ν=0.3, σ_y=200., H=50., r=0.5, κ_∞=13., α_∞=13.)
 
     loading = get_Plastic_loading()
-    check_checksum(m, loading, "Plastic1")#, debug_print=true, OVERWRITE_CHECKSUMS=true)
+    check_jld2(m, loading, "Plastic1")#, debug_print=true, OVERWRITE_JLD2=true)
 end
 

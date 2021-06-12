@@ -73,6 +73,7 @@ include("CrystalViscoPlastic/CrystalViscoPlastic.jl")
 include("CrystalViscoPlastic/CrystalViscoPlasticRed.jl")
 
 include("nonlinear_solver.jl")
+include("wrappers.jl")
 
 export initial_material_state, get_cache
 export material_response
@@ -80,5 +81,6 @@ export material_response
 export AbstractMaterial
 export LinearElastic, Plastic
 export LinearElasticState, PlasticState
+export OneD, UniaxialStrain, UniaxialStress, PlaneStrain, PlaneStress
 
 end
