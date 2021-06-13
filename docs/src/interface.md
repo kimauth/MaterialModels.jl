@@ -9,4 +9,5 @@ CurrentModule = MaterialModels
 AbstractMaterial
 AbstractMaterialState
 material_response
+initial_material_state
 ```

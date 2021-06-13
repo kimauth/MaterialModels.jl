@@ -116,8 +116,7 @@ An associative flow rule and non-associative hardening rules are used. The evolu
 ```
 # Keyword arguments
 - `cache`: Cache for the iterative solver, used by NLsolve.jl. It is strongly recommended to pre-allocate the cache for repeated calls to `material_response`. See [`get_cache`](@ref).
-- `options::Dict{Symbol, Any}`: Solver options for the non-linear solver. Under the key `:nlsolve_params` keyword arguments for `nlsolve` can be handed over.
-See [NLsolve documentation](https://github.com/JuliaNLSolvers/NLsolve.jl#common-options). By default the Newton solver will be used.
+- `options::Dict{Symbol, Any}`: Solver options for the non-linear solver. `Plastic` uses `NLsolve.jl`. Under the key `:nlsolve_params` keyword arguments for `nlsolve` can be handed over. See [NLsolve documentation](https://github.com/JuliaNLSolvers/NLsolve.jl#common-options). By default the Newton solver will be used.
 """
 function material_response(m::Plastic, Δε::SymmetricTensor{2,3,T,6}, state::PlasticState{3},
     Δt=nothing; cache=get_cache(m), options::Dict{Symbol, Any} = Dict{Symbol, Any}()) where T
