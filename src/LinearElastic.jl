@@ -100,11 +100,8 @@ function transversal_elastic_tangent_3D(E::T, ν::T, α₁::T, α₂::T, α₃::
     return C
 end
 
-# TODO could these be automatically generated?
-Base.zero(::Type{ElasticState{dim,T,M}}) where {dim,T,M} = ElasticState(zero(SymmetricTensor{2,dim,T,M}))
-
 # define which state belongs to the material
-initial_material_state(::LinearElastic) = zero(ElasticState{3,Float64,6})
+initial_material_state(::TransversalLinearElastic) = zero(ElasticState{3,Float64,6})
 
 # constitutive drivers generally operate in 3D 
 # (we could specialize for lower dimensions if needed for performance)
@@ -117,7 +114,7 @@ Return the stress tensor, stress tangent and the new `MaterialState` for the giv
 \\boldsymbol{\\sigma} = \\mathbf{E}^\\text{e} : \\Delta \\boldsymbol{\\varepsilon} .
 ```
 """
-function material_response(m::LinearElastic, Δε::SymmetricTensor{2,3}, state::ElasticState{3}, Δt=nothing; cache=nothing, options=nothing)
+function material_response(m::TransversalLinearElastic, Δε::SymmetricTensor{2,3}, state::ElasticState{3}, Δt=nothing; cache=nothing, options=nothing)
     Δσ = m.Eᵉ ⊡ Δε
     σ = state.σ + Δσ
     return σ, m.Eᵉ, ElasticState(σ)
