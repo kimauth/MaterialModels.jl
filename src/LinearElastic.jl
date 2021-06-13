@@ -42,13 +42,14 @@ get_stress_type(::LinearElasticState) = SymmetricTensor{2,3,Float64,6}
 # constitutive drivers generally operate in 3D 
 # (we could specialize for lower dimensions if needed for performance)
 """
-    material_response(m::LinearElastic, Δε::SymmetricTensor{2,3}, state::LinearElasticState{3})
+    material_response(m::LinearElastic, Δε::SymmetricTensor{2,3})
 
-Return the stress tensor, stress tangent and the new `MaterialState` for the given strain step Δε such that
+Return the stress tensor and the stress tangent for the given strain ε such that
 
 ```math
 \\boldsymbol{\\sigma} = \\mathbf{E}^\\text{e} : \\Delta \\boldsymbol{\\varepsilon} .
 ```
+No `MaterialState` is needed for the stress computation, thus if a state is handed over to `material_response`, the same state is returned.
 """
 function material_response(m::LinearElastic, ε::SymmetricTensor{2,3}, state::LinearElasticState=LinearElasticState(), Δt=nothing; cache=nothing, options=nothing)
     σ = m.Eᵉ ⊡ ε
