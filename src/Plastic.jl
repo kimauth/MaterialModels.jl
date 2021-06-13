@@ -137,13 +137,12 @@ function material_response(m::Plastic, Δε::SymmetricTensor{2,3,T,6}, state::Pl
         # convert initial guess to vector
         tomandel!(cache.x_f, x0)
         # solve for variables x
-        nlsolve_options = get(options, :nlsolve_params, Dict{Symbol, Any}(:method=>:newton))
-        haskey(nlsolve_options, :method) || merge!(nlsolve_options, Dict{Symbol, Any}(:method=>:newton)) # set newton if the user did not supply another method
-        result = NLsolve.nlsolve(cache, cache.x_f; nlsolve_options...)
+        nlsolve_options = get(options, :nlsolve_params, Dict{Symbol, Any}())
+        result = NLsolve.nlsolve(cache, cache.x_f; method=:newton, nlsolve_options...)
         # result = NLsolve.newton(cache, cache.x_f, 0.0, 1e-8, 1000, false, false, false, LineSearches.Static(); linsolve = (x, A, b) -> copyto!(x, A\b))
         # result = NLsolve.newton_(cache, cache.x_f, 0.0, 1e-8, 1000, false, false, false, LineSearches.Static(), (x, A, b) -> copyto!(x, A\b), NLsolve.NewtonCache(cache))
         if result.f_converged
-            x = frommandel(ResidualsPlastic, result.zero)
+            x = frommandel(ResidualsPlastic, result.zero::Vector{T})
             dRdx = cache.DF
             inv_J_σσ = frommandel(SymmetricTensor{4,3}, inv(dRdx))
             ∂σ∂ε = inv_J_σσ ⊡ m.Eᵉ
