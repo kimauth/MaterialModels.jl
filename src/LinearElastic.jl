@@ -31,10 +31,13 @@ function elastic_tangent_3D(E::T, ν::T) where T
     return C
 end
 
-# struct LinearElasticState <: AbstractMaterialState end
+struct LinearElasticState <: AbstractMaterialState end
 
 # define which state belongs to the material
-initial_material_state(::LinearElastic) = nothing
+initial_material_state(::LinearElastic) = LinearElasticState()
+
+# for restricted stress states to create buffer
+get_stress_type(::LinearElasticState) = SymmetricTensor{2,3,Float64,6}
 
 # constitutive drivers generally operate in 3D 
 # (we could specialize for lower dimensions if needed for performance)
@@ -47,7 +50,7 @@ Return the stress tensor, stress tangent and the new `MaterialState` for the giv
 \\boldsymbol{\\sigma} = \\mathbf{E}^\\text{e} : \\Delta \\boldsymbol{\\varepsilon} .
 ```
 """
-function material_response(m::LinearElastic, ε::SymmetricTensor{2,3}, state::Nothing=nothing, Δt=nothing; cache=nothing, options=nothing)
+function material_response(m::LinearElastic, ε::SymmetricTensor{2,3}, state::LinearElasticState=LinearElasticState(), Δt=nothing; cache=nothing, options=nothing)
     σ = m.Eᵉ ⊡ ε
-    return σ, m.Eᵉ, nothing
+    return σ, m.Eᵉ, state
 end
