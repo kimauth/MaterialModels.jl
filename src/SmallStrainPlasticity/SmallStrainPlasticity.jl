@@ -142,7 +142,7 @@ function material_response(material::Chaboche, ϵ::SymmetricTensor{2,3}, state_o
     
     σ_trial, dσdϵ_elastic, _, _ = material_response(material.elastic, ϵ-state_old.ϵₚ, nothing, Δt)
 
-    Φ_trial = yieldCriterion(material, σ_trial-sum(state_old.β), state_old.λ)
+    Φ_trial = yield_function(material, σ_trial-sum(state_old.β), state_old.λ)
     if Φ_trial < 0
         return σ_trial, dσdϵ_elastic, state_old, true
     else
@@ -165,10 +165,10 @@ end
 function residual(X::ChabocheResidual{NKin_R}, material::Chaboche, old::ChabocheState, ϵ) where{NKin_R}
     Δλ = X.λ - old.λ
     
-    σ_vm = vonMisesDev(X.σ_red_dev)
+    σ_vm = vonmises_dev(X.σ_red_dev)
     ν = X.σ_red_dev * ((3/2)*σ_vm)
 
-    Φ = yieldCriterion(material, X.σ_red_dev, X.λ)
+    Φ = yield_function(material, X.σ_red_dev, X.λ)
 
     σ_dev = calc_sigma_dev(material.elastic, old, ϵ, ν, Δλ)
     
@@ -195,9 +195,9 @@ end
 # Specialized for only one backstress (NKin_R=0)
 function residual(X::ChabocheResidual{0}, material::Chaboche, old::ChabocheState, ϵ)
     
-    σ_vm = vonMisesDev(X.σ_red_dev)
+    σ_vm = vonmises_dev(X.σ_red_dev)
     ν = X.σ_red_dev * ((3/2)*σ_vm)
-    Φ = yieldCriterion(material, σ_vm, X.λ)
+    Φ = yield_function(material, σ_vm, X.λ)
 
     σ_dev = calc_sigma_dev(material.elastic, old, ϵ, ν, X.λ - old.λ)
     β_hat0 = σ_dev - X.σ_red_dev
@@ -255,7 +255,7 @@ function get_plastic_output(cache::ChabocheCache, m::Chaboche, state_old::Chaboc
     λ = X_tensor.λ
     Δλ = λ-state_old.λ
     σ_red_dev = X_tensor.σ_red_dev
-    ν = (3.0/2.0) * σ_red_dev / vonMisesDev(σ_red_dev)
+    ν = (3.0/2.0) * σ_red_dev / vonmises_dev(σ_red_dev)
     
     if NKin > 1
         β = ntuple(i-> i==1 ? dev(σ) - σ_red_dev - sum(X_tensor.β1) : X_tensor.β1[i-1], NKin)
@@ -309,7 +309,7 @@ end
 function get_sigma(material::Chaboche, state_old::ChabocheState, X::ChabocheResidual, ϵ::SymmetricTensor{2,3})
     Δλ = X.λ - state_old.λ
     σ_red_dev = X.σ_red_dev
-    ν = (3.0/2.0) * σ_red_dev / vonMises(σ_red_dev)
+    ν = (3.0/2.0) * σ_red_dev / vonmises_dev(σ_red_dev)
     σ = calc_sigma(material.elastic, state_old, ϵ, ν, Δλ)
     return σ
 end
@@ -322,11 +322,11 @@ function calc_sigma_dev(material::LinearIsotropicElasticity, state_old::Chaboche
     return 2 * material.G * (dev(ϵ - state_old.ϵₚ) - Δλ*ν)
 end
 
-function yieldCriterion(material::Chaboche{Tp,ElType,IsoType,KinType}, σ_vm_red::Number, λ) where {Tp,ElType,IsoType<:NTuple{Niso,Any},KinType} where {Niso}
+function yield_function(material::Chaboche{Tp,ElType,IsoType,KinType}, σ_vm_red::Number, λ) where {Tp,ElType,IsoType<:NTuple{Niso,Any},KinType} where {Niso}
     κ = sum(ntuple(i->get_hardening(material.isotropic[i], λ), Val{Niso}()))
     return σ_vm_red - (κ + material.σ_y0)
 end
 
-function yieldCriterion(material::Chaboche, σ_red_dev::AbstractTensor, λ)
-    return yieldCriterion(material, vonMises(σ_red_dev), λ)
+function yield_function(material::Chaboche, σ_red_dev::AbstractTensor, λ)
+    return yield_function(material, vonmises(σ_red_dev), λ)
 end

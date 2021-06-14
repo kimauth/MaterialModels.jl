@@ -2,12 +2,12 @@
 DiffResults.DiffResult(value::MArray, derivs::Tuple{Vararg{MArray}}) = DiffResults.MutableDiffResult(value, derivs)
 
 # Generic functions, should be defined elsewhere?
-function vonMises(𝛔::SymmetricTensor{2,3})
+function vonmises(𝛔::SymmetricTensor{2,3})
     𝛔_dev = dev(𝛔)
-    return sqrt((3.0/2.0) * (𝛔_dev ⊡ 𝛔_dev))
+    return vonmises_dev(𝛔_dev)
 end
 
-function vonMisesDev(𝛔_dev::SymmetricTensor{2,3})
+function vonmises_dev(𝛔_dev::SymmetricTensor{2,3})
     return sqrt((3.0/2.0) * (𝛔_dev ⊡ 𝛔_dev))
 end
 

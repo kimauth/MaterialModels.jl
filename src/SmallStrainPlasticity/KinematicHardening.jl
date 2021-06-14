@@ -71,7 +71,7 @@ KinematicHardeningOW(;Hkin, β∞, mexp) = KinematicHardeningOW(Hkin, β∞, mex
     
 """
 function get_evolution(param::KinematicHardeningOW{Tp}, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor{dim,Tβ}) where{Tp,Tβ,dim}
-    β_vm = vonMisesDev(𝛃ᵢ)
+    β_vm = vonmises_dev(𝛃ᵢ)
     if β_vm < param.β∞ * eps(promote_type(Tp,Tβ))
         return param.Hkin * (2.0/3.0) * 𝛎 + 0*𝛃ᵢ
     end
