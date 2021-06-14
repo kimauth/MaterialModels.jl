@@ -289,14 +289,13 @@ function initial_guess(material::Chaboche, state_old::ChabocheState{Nkin, T, N},
 end
 
 
-function solve_local_problem!(cache::ChabocheCache, material::Chaboche, state_old::ChabocheState{Nkin,Ts,N}, ϵ::SymmetricTensor{2,3},  options::Dict{Symbol, Any}) where {Ts,Nkin,N}
+function solve_local_problem!(cache::ChabocheCache, m::Chaboche, state_old::ChabocheState{Nkin,Ts,N}, ϵ::SymmetricTensor{2,3},  options::Dict{Symbol, Any}) where {Ts,Nkin,N}
     
-    X_tensor = initial_guess(material, state_old, ϵ)
-    rf_tens(X_tensor_arg) = residual(X_tensor_arg, material, state_old, ϵ)
-    rf!(R, X) = vector_residual!(rf_tens, R, X, X_tensor)
+    x0 = initial_guess(m, state_old, ϵ)
+    rf!(r_vector, x_vector) = vector_residual!((x)->residual(x,m,state_old,ϵ), r_vector, x_vector, x0)  # Using x0 as template for residual instead of material as this is related to Tensors
     update_cache!(cache.R_X_oncediff, rf!)
     
-    tomandel!(cache.R_X_oncediff.x_f, X_tensor)
+    tomandel!(cache.R_X_oncediff.x_f, x0)
     # Should this be centrally managed? I.e. process_options or similar?
     nlsolve_options = get(options, :nlsolve_params, Dict{Symbol, Any}(:method=>:newton))
     haskey(nlsolve_options, :method) || merge!(nlsolve_options, Dict{Symbol, Any}(:method=>:newton)) # set newton if the user did not supply another method
