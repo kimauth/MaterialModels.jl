@@ -298,7 +298,7 @@ function solve_local_problem!(cache::ChabocheCache, m::Chaboche, state_old::Chab
     haskey(nlsolve_options, :method) || merge!(nlsolve_options, Dict{Symbol, Any}(:method=>:newton)) # set newton if the user did not supply another method
     
     # Solve local problem:
-    result = NLsolve.nlsolve(cache, cache.R_X_oncediff.x_f; nlsolve_options...)
+    result = NLsolve.nlsolve(cache.R_X_oncediff, cache.R_X_oncediff.x_f; nlsolve_options...)
     
     # Is this necessary?
     cache.R_X_oncediff.x_f = result.zero
