@@ -1,9 +1,11 @@
 @testset "SmallStrainPlasticity" begin
+    # Basic setup with Voce isotropic hardening and one back-stress of Armstrong-Frederick time
+
     # constructor
     m = Chaboche(elastic=LinearIsotropicElasticity(E=210.e3, ν=0.3),
-                 σ_y0=100.0,
-                 isotropic=(IsotropicHardeningVoce(Hiso=100000.0, κ∞=100.0),), # Can add more dragstresses by more entries in Tuple)
-                 kinematic=(KinematicHardeningAF(Hkin=1000000.0, β∞=200.0),)   # Can add more backstresses by more entries in Tuple
+                  σ_y0=100.0,
+                  isotropic=(IsotropicHardeningVoce(Hiso=100000.0, κ∞=100.0),), # Can add more dragstresses by more entries in Tuple)
+                  kinematic=(KinematicHardeningAF(Hkin=1000000.0, β∞=200.0),)   # Can add more backstresses by more entries in Tuple
     )
     cache = get_cache(m)
 
@@ -25,4 +27,24 @@
 
     @test converged
 
+    # Example with a more advanced material:
+    # Linear isotropic elasticity 
+    # Two isotropic hardening laws: Voce and Swift 
+    # Two back-stresses, one Armstrong-Frederick and one Ohno-Wang
+    m = Chaboche(elastic=LinearIsotropicElasticity(E=210.e3, ν=0.3),
+                 σ_y0=100.0,
+                 isotropic=(IsotropicHardeningVoce(Hiso=100000.0, κ∞=100.0),
+                            IsotropicHardeningSwift(K=100.0, λ0=1.0e-2, n=0.5)),
+                 kinematic=(KinematicHardeningAF(Hkin=40.e3, β∞=200.0),
+                            KinematicHardeningOW(Hkin=30.e3, β∞=200.0, mexp=4.0))
+    )
+
+    cache = get_cache(m)
+    state = initial_material_state(m)
+    Δt = 1.0    # No influence...
+    ϵ = SymmetricTensor{2, 3}((i,j) -> i==j ? (i==1 ? 0.1/100.0 : -0.3*0.1/100.0) : 0.0)
+    σ, ∂σ∂ε, temp_state, converged = material_response(m, ϵ, state, Δt; cache=cache)
+
+    @test converged
+    
 end
