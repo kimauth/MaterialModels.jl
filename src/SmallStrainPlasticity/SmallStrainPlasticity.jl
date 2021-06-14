@@ -300,11 +300,10 @@ function solve_local_problem!(cache::ChabocheCache, material::Chaboche, state_ol
     # Should this be centrally managed? I.e. process_options or similar?
     nlsolve_options = get(options, :nlsolve_params, Dict{Symbol, Any}(:method=>:newton))
     haskey(nlsolve_options, :method) || merge!(nlsolve_options, Dict{Symbol, Any}(:method=>:newton)) # set newton if the user did not supply another method
-    nlsolve_options[:method] == :newton || merge!(nlsolve_options, Dict(:cache=>cache.R_X_newton))
-    # Need to call newton directly to allow newton caching...
-    #result = NLsolve.newton(; ftol=1.e-6, cache=cache.R_X_newton)
-    my_newton(df, x0; xtol=0.0, ftol=1.e-8, iterations=100, store_trace=false, show_trace=false, extended_trace=false, linesearch=NLsolve.LineSearches.Static(),cache=NewtonCache(df)) = NLsolve.newton(df, x0, xtol, ftol, iterations, store_trace, show_trace, extended_trace, linesearch,cache)
-    result = my_newton(cache.R_X_oncediff, cache.R_X_oncediff.x_f, cache=cache.R_X_newton)
+    
+    # Solve local problem:
+    result = NLsolve.nlsolve(cache, cache.R_X_oncediff.x_f; nlsolve_options...)
+    
     # Is this necessary?
     cache.R_X_oncediff.x_f = result.zero
     
