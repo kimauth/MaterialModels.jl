@@ -21,6 +21,6 @@ end
 IsotropicHardeningSwift(;K, λ0, n) = IsotropicHardeningSwift(K, λ0, n)    # Keyword argument constructor
 
 function get_hardening(param::IsotropicHardeningSwift, λ::Number)
-    param.K * (param.λ0 + λ)^n
+    param.K * (param.λ0 + λ)^param.n
 end
 
