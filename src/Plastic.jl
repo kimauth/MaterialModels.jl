@@ -39,7 +39,7 @@ end
 Plastic(;E, ν, σ_y, H, r, κ_∞, α_∞) = Plastic(E, ν, σ_y, H, r, κ_∞, α_∞)
 
 struct PlasticState{dim,T,M} <: AbstractMaterialState
-    σ::SymmetricTensor{2,dim,T,M}
+    εᵖ::SymmetricTensor{2,dim,T,M}
     κ::T
     α::SymmetricTensor{2,dim,T,M}
     μ::T
@@ -61,7 +61,7 @@ end
 # constitutive driver operates in 3D, so these can always be 3D
 # TODO: Should Residuals have a Type Parameter N for the number of scalar equations?
 struct ResidualsPlastic{T}
-    σ::SymmetricTensor{2,3,T,6}
+    εᵖ::SymmetricTensor{2,3,T,6}
     κ::T
     α::SymmetricTensor{2,3,T,6}
     μ::T
@@ -77,7 +77,7 @@ Tensors.get_base(::Type{Plastic}) = ResidualsPlastic # needed for frommandel
 function Tensors.tomandel!(v::Vector{T}, r::ResidualsPlastic{T}) where T
     M=6
     # TODO check vector length
-    tomandel!(view(v, 1:M), r.σ)
+    tomandel!(view(v, 1:M), r.εᵖ)
     v[M+1] = r.κ
     tomandel!(view(v, M+2:2M+1), r.α)
     v[2M+2] = r.μ
@@ -85,11 +85,11 @@ function Tensors.tomandel!(v::Vector{T}, r::ResidualsPlastic{T}) where T
 end
 
 function Tensors.frommandel(::Type{ResidualsPlastic}, v::Vector{T}) where T
-    σ = frommandel(SymmetricTensor{2,3}, view(v, 1:6))
+    εᵖ = frommandel(SymmetricTensor{2,3}, view(v, 1:6))
     κ = v[7]
     α = frommandel(SymmetricTensor{2,3}, view(v, 8:13))
     μ = v[14]
-    return ResidualsPlastic{T}(σ, κ, α, μ)
+    return ResidualsPlastic{T}(εᵖ, κ, α, μ)
 end
 
 """
@@ -119,10 +119,10 @@ An associative flow rule and non-associative hardening rules are used. The evolu
 - `options::Dict{Symbol, Any}`: Solver options for the non-linear solver. Under the key `:nlsolve_params` keyword arguments for `nlsolve` can be handed over.
 See [NLsolve documentation](https://github.com/JuliaNLSolvers/NLsolve.jl#common-options). By default the Newton solver will be used.
 """
-function material_response(m::Plastic, Δε::SymmetricTensor{2,3,T,6}, state::PlasticState{3},
+function material_response(m::Plastic, ε::SymmetricTensor{2,3,T,6}, state::PlasticState{3},
     Δt=nothing; cache=get_cache(m), options::Dict{Symbol, Any} = Dict{Symbol, Any}()) where T
 
-    σ_trial = state.σ + m.Eᵉ ⊡ Δε
+    σ_trial = m.Eᵉ ⊡ (ε - state.εᵖ)
     Φ = sqrt(3/2)*norm(dev(σ_trial-state.α)) - m.σ_y - state.κ
 
     if Φ <= 0
@@ -130,10 +130,10 @@ function material_response(m::Plastic, Δε::SymmetricTensor{2,3,T,6}, state::Pl
     else
         # set the current residual function that depends only on the variables
         # cache.f = (r_vector, x_vector) -> vector_residual!(((x)->residuals(x,m,state,Δε)), r_vector, x_vector, m)
-        f(r_vector, x_vector) = vector_residual!(((x)->residuals(x,m,state,Δε)), r_vector, x_vector, m)
+        f(r_vector, x_vector) = vector_residual!(((x)->residuals(x,m,state,ε)), r_vector, x_vector, m)
         update_cache!(cache, f)
         # initial guess
-        x0 = ResidualsPlastic(σ_trial, state.κ, state.α, state.μ)
+        x0 = ResidualsPlastic(state.εᵖ, state.κ, state.α, state.μ)
         # convert initial guess to vector
         tomandel!(cache.x_f, x0)
         # solve for variables x
@@ -144,20 +144,22 @@ function material_response(m::Plastic, Δε::SymmetricTensor{2,3,T,6}, state::Pl
         # result = NLsolve.newton_(cache, cache.x_f, 0.0, 1e-8, 1000, false, false, false, LineSearches.Static(), (x, A, b) -> copyto!(x, A\b), NLsolve.NewtonCache(cache))
         if result.f_converged
             x = frommandel(ResidualsPlastic, result.zero)
+            σ = m.Eᵉ ⊡ (ε - x.εᵖ)
             dRdx = cache.DF
             inv_J_σσ = frommandel(SymmetricTensor{4,3}, inv(dRdx))
             ∂σ∂ε = inv_J_σσ ⊡ m.Eᵉ
-            return x.σ, ∂σ∂ε, PlasticState(x.σ, x.κ, x.α, x.μ)
+            return σ, ∂σ∂ε, PlasticState(x.εᵖ, x.κ, x.α, x.μ)
         else
             error("Material model not converged. Could not find material state.")
         end
     end
 end
 
-function residuals(vars::ResidualsPlastic, m::Plastic, material_state::PlasticState{3}, Δε)
-    σ = vars.σ; κ = vars.κ; α = vars.α; μ = vars.μ
+function residuals(vars::ResidualsPlastic, m::Plastic, material_state::PlasticState{3}, ε)
+    εᵖ = vars.εᵖ; κ = vars.κ; α = vars.α; μ = vars.μ
+    σ = m.Eᵉ ⊡ (ε - εᵖ)
     ν = 3/(2*sqrt(3/2)*norm(dev(σ-α)))*dev(σ-α)
-    Rσ = σ - material_state.σ - m.Eᵉ ⊡ Δε + μ * m.Eᵉ ⊡ ν # R_σ(σ, α, μ)
+    Rσ = m.Eᵉ ⊡ (-εᵖ + material_state.εᵖ + μ * ν) # R_σ(εᵖ, α, μ)
     Rκ = κ - material_state.κ - μ*m.H_κ*(-1 +κ/m.κ_∞) # R_κ(κ, μ)
     Rα = α - material_state.α - μ*m.H_α * (-ν + 3/(2*m.α_∞)*dev(α)) # R_α(σ, α, μ)
     Rμ = sqrt(3/2)*norm(dev(σ-α)) - m.σ_y - κ

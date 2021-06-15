@@ -5,7 +5,6 @@
 
     # initial state
     state = initial_material_state(m)
-    @test state.σ == zero(SymmetricTensor{2,3})
 
     # strain at yield point for uniaxial stress
     ε11_yield = m.σ_y / m.E
