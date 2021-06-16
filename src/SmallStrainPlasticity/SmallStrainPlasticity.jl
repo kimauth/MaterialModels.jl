@@ -20,36 +20,28 @@ struct ChabocheState{Nkin,T,N} <:AbstractMaterialState
     β::NTuple{Nkin, SymmetricTensor{2,3,T,N}}
 end
 
-struct ChabocheResidual{NKin_R,Tλ,Tσ,Tβ,N_tens}  <:AbstractResiduals
+struct ChabocheResidual{NKin,Tλ,Tσ,Tβ,N_tens}  <:AbstractResiduals
+    σ::SymmetricTensor{2,3,Tσ,N_tens}
     λ::Tλ
-    σ_red_dev::SymmetricTensor{2,3,Tσ,N_tens}
-    β1::NTuple{NKin_R, SymmetricTensor{2,3,Tβ,N_tens}}
-end
-# Specialize for only one backstress
-function ChabocheResidual(λ::Tλ,σ_red_dev::SymmetricTensor{2,3,Tσ,N_tens}) where {Tλ,Tσ,N_tens}
-    ChabocheResidual{0,Tλ,Tσ,Float64,N_tens}(λ,σ_red_dev,())
+    β::NTuple{NKin, SymmetricTensor{2,3,Tβ,N_tens}}
 end
 
-Tensors.get_base(::Type{<:ChabocheResidual{NKin_R}}) where{NKin_R} = ChabocheResidual{NKin_R} # needed for frommandel
+Tensors.get_base(::Type{<:ChabocheResidual{NKin}}) where{NKin} = ChabocheResidual{NKin} # needed for frommandel
 
-function Tensors.tomandel!(v::AbstractVector{T}, r::ChabocheResidual{NKin_R,Tλ,Tσ,Tβ,N_tens}) where {T,NKin_R,Tλ,Tσ,Tβ,N_tens}
-    v[1] = r.λ
-    tomandel!(v, r.σ_red_dev, offset=1)
-    for i=1:NKin_R
-        tomandel!(v, r.β1[i], offset=1+N_tens*i)
+function Tensors.tomandel!(v::AbstractVector{T}, r::ChabocheResidual{NKin,Tλ,Tσ,Tβ,N_tens}) where {T,NKin,Tλ,Tσ,Tβ,N_tens}
+    tomandel!(v, r.σ)
+    v[7] = r.λ
+    for i=1:NKin
+        tomandel!(v, r.β[i], offset=1+N_tens*i)
     end
     return v
 end
 
-function Tensors.frommandel(::Type{<:ChabocheResidual{NKin_R}}, v::AbstractVector{Tv}) where {Tv,NKin_R}
-    λ = v[1]
-    σ_red_dev = frommandel(SymmetricTensor{2,3}, v, offset=1)
-    if NKin_R > 0
-        β1 = ntuple(i->frommandel(SymmetricTensor{2,3,Tv}, v, offset=1+6*i), NKin_R)
-        return ChabocheResidual(λ,σ_red_dev,β1)
-    else
-        return ChabocheResidual(λ,σ_red_dev)
-    end
+function Tensors.frommandel(::Type{<:ChabocheResidual{NKin}}, v::AbstractVector{Tv}) where {Tv,NKin}
+    σ = frommandel(SymmetricTensor{2,3}, v)
+    λ = v[7]
+    β = ntuple(i->frommandel(SymmetricTensor{2,3,Tv}, v, offset=1+6*i), NKin)
+    return ChabocheResidual(σ,λ,β)
 end
 
 function initial_material_state(material::Chaboche{T}) where {T}
@@ -57,34 +49,23 @@ function initial_material_state(material::Chaboche{T}) where {T}
 end
 
 # Definition of material cache
-##=
-struct ChabocheCache{T, nx, nx6, NL_TF, NL_TDF, NL_TX, NL_NC}
-    # General purpose
-    vnx6::MMatrix{nx,6,T,nx6}
-    v6xn::MMatrix{6,nx,T,nx6}
-    v6x6::MMatrix{6,6,T,36}
-    v6::MVector{6,T}
-    # For solving R(X)=0
-    #X0::MVector{nx,T}
+struct ChabocheCache{NL_TF, NL_TDF, NL_TX}
     R_X_oncediff::OnceDifferentiable{NL_TF, NL_TDF, NL_TX}
-    R_X_newton::NLsolve.NewtonCache{NL_NC}
 end
 
 function get_cache(material::Chaboche{T,ElType,IsoType,KinType}) where {T,ElType,IsoType,KinType}
-    nx = 1 + 6*length(material.kinematic)
+    nx = 7 + 6*length(material.kinematic)
 
     # Construct residual function and create OnceDifferentiable object
     state_tmp = initial_material_state(material)
-    σ_trial_dev = zero(SymmetricTensor{2,3,T})
+    ϵ = zero(SymmetricTensor{2,3,T})
     X_tensor = initial_guess(material, state_tmp, zero(SymmetricTensor{2,3,T}))
-    rf_tens(X_tensor) = residual(X_tensor, material, state_tmp, σ_trial_dev)
+    rf_tens(X_tensor) = residual(X_tensor, material, state_tmp, ϵ)
     rf!(R, X) = vector_residual!(rf_tens, R, X, X_tensor)
     X0 = MVector{nx}(zeros(T, nx))
     # X0 only for shape and type information here:
     R_X_oncediff = OnceDifferentiable(rf!, X0, X0; autodiff = :forward)
-    R_X_newton = NLsolve.NewtonCache(R_X_oncediff)
-    return ChabocheCache(MMatrix{nx,6}(zeros(nx,6)), MMatrix{6,nx}(zeros(6,nx)), MMatrix{6,6}(zeros(6,6)), MVector{6}(zeros(6)),
-                         R_X_oncediff, R_X_newton)
+    return ChabocheCache(R_X_oncediff)
 end
 
 """
@@ -132,188 +113,88 @@ Kinematic hardening is formulated as
 where ``g_{\\mathrm{kin},i}(\\boldsymbol{\\nu}, \\boldsymbol{\\beta}_i)`` is specified by `m.kinematic[i]`
 and ``i\\in[1,N_\\mathrm{kin}]``. 
 
-```
+# Algorithmic tangent stiffness computations
+σ(X(ϵ), ϵ): dσdϵ = ∂σ∂X dXdϵ + ∂σ∂ϵ
+R(X(ϵ), ϵ): dRdX=0=∂R∂X dXdϵ + ∂R∂ϵ
+dσdϵ = - ∂σ∂X [∂R∂X]^-1 ∂R∂ϵ + ∂σ∂ϵ
+
+For this specific case, 
+
+- ∂σ∂X is identity in upper left corner, zero the rest
+- ∂R∂ϵ is the elastic stiffness in upper left corner, zero the rest
+- ∂σ∂ϵ is zero (the entire stress σ is only a function of x.σ)
+
 # Keyword arguments
 - `cache`: Cache for the iterative solver, used by NLsolve.jl. It is strongly recommended to pre-allocate the cache for repeated calls to `material_response`. See [`get_cache`](@ref).
 - `options::Dict{Symbol, Any}`: Solver options for the non-linear solver. Under the key `:nlsolve_params` keyword arguments for `nlsolve` can be handed over.
 See [NLsolve documentation](https://github.com/JuliaNLSolvers/NLsolve.jl#common-options). By default the Newton solver will be used.
 """
-function material_response(material::Chaboche, ϵ::SymmetricTensor{2,3}, state_old::ChabocheState{Nkin,T,N}, Δt; cache=get_cache(material), options::Dict{Symbol, Any} = Dict{Symbol, Any}()) where {T,N,Nkin}
+function material_response(m::Chaboche, ϵ::SymmetricTensor{2,3}, old::ChabocheState{Nkin,T,N}, Δt; cache=get_cache(m), options::Dict{Symbol, Any} = Dict{Symbol, Any}()) where {T,N,Nkin}
     
-    σ_trial, dσdϵ_elastic, _, _ = material_response(material.elastic, ϵ-state_old.ϵₚ, nothing, Δt)
+    σ_trial, dσdϵ_elastic, _, _ = material_response(m.elastic, ϵ-old.ϵₚ, nothing, Δt)
+    Φ_trial = vonmises(σ_trial-sum(old.β)) - (m.σ_y0 + sum(get_hardening.(m.isotropic, old.λ)))
 
-    Φ_trial = yield_function(material, σ_trial-sum(state_old.β), state_old.λ)
     if Φ_trial < 0
-        return σ_trial, dσdϵ_elastic, state_old, true
+        return σ_trial, dσdϵ_elastic, old, true
     else
-        converged = solve_local_problem!(cache, material, state_old, ϵ, options)
-        if converged
-            σ, dσdϵ, state = get_plastic_output(cache, material, state_old, σ_trial, dσdϵ_elastic)
+        x0 = initial_guess(m, old, ϵ)
+        rf!(r_vector, x_vector) = vector_residual!((x)->residual(x,m,old,ϵ), r_vector, x_vector, x0)  # Using x0 as template for residual instead of material as this is related to Tensors
+        update_cache!(cache.R_X_oncediff, rf!)
+        
+        tomandel!(cache.R_X_oncediff.x_f, x0)
+        # Should this be centrally managed? I.e. process_options or similar?
+        nlsolve_options = get(options, :nlsolve_params, Dict{Symbol, Any}(:method=>:newton))
+        haskey(nlsolve_options, :method) || merge!(nlsolve_options, Dict{Symbol, Any}(:method=>:newton)) # set newton if the user did not supply another method
+        
+        # Solve local problem:
+        result = NLsolve.nlsolve(cache.R_X_oncediff, cache.R_X_oncediff.x_f; nlsolve_options...)
+
+        if result.f_converged
+            x = frommandel(ChabocheResidual{Nkin}, result.zero)
+            dRdx = cache.R_X_oncediff.DF
+            inv_J_σσ = frommandel(SymmetricTensor{4,3}, inv(dRdx))
+            dσdϵ = inv_J_σσ ⊡ dσdϵ_elastic
+            σ_red_dev = dev(x.σ) - sum(x.β)
+            ϵₚ = calculate_plastic_strain(old, σ_red_dev * ((3/2)*vonmises_dev(σ_red_dev)), x.λ-old.λ)
+            return x.σ, dσdϵ, ChabocheState(ϵₚ, x.λ, x.β), true
         else
-            σ, dσdϵ, state = (σ_trial, dσdϵ_elastic, state_old)
+            return σ_trial, dσdϵ_elastic, old, false
         end
-        return σ, dσdϵ, state, converged
     end
     
 end
 
 # General residual function 
-function residual(X::ChabocheResidual{NKin_R}, material::Chaboche, old::ChabocheState, ϵ) where{NKin_R}
-    Δλ = X.λ - old.λ
+function residual(x::ChabocheResidual{NKin}, m::Chaboche, old::ChabocheState, ϵ) where{NKin}
+    σ_red_dev = dev(x.σ) - sum(x.β)
+    σ_vm = vonmises_dev(σ_red_dev)
+    Δλ = x.λ-old.λ
+    ν = σ_red_dev * ((3/2)*σ_vm)                    # Gradient of von mises yield surface
+    ϵₑ = calculate_elastic_strain(old, ϵ, ν, Δλ)    # Using assumption of associative plasticity
+    κ = sum(get_hardening.(m.isotropic, x.λ))         
+
+    Rσ = x.σ - calculate_sigma(m.elastic, ϵₑ)       # Using the specific elastic law
+    Rλ = σ_vm - (m.σ_y0 + κ)
+    Rβ = ntuple((i) -> x.β[i] - old.β[i] - Δλ * get_evolution(m.kinematic[i], ν, x.β[i]), NKin)
     
-    σ_vm = vonmises_dev(X.σ_red_dev)
-    ν = X.σ_red_dev * ((3/2)*σ_vm)
-
-    Φ = yield_function(material, X.σ_red_dev, X.λ)
-
-    σ_dev = calc_sigma_dev(material.elastic, old, ϵ, ν, Δλ)
-    
-    if NKin_R > 0
-        β_hat0 = σ_dev - X.σ_red_dev - sum(X.β1)
-        β_hat1 = X.β1
-        β1 = ntuple(i->old.β[i+1] + Δλ * get_evolution(material.kinematic[i+1], ν, β_hat1[i]), NKin_R)
-    else
-        β_hat0 = σ_dev - X.σ_red_dev
-    end
-
-    β0 = old.β[1] + Δλ * get_evolution(material.kinematic[1], ν, β_hat0)
-
-    if NKin_R > 0
-        σ_red_dev = σ_dev - β0 - sum(β1)
-        R = ChabocheResidual(Φ, X.σ_red_dev-σ_red_dev, ntuple(i->β1[i]-β_hat1[i], NKin_R))
-    else
-        σ_red_dev = σ_dev - β0
-        R = ChabocheResidual(Φ, X.σ_red_dev-σ_red_dev)
-    end
-    return R
+    return ChabocheResidual(Rσ, Rλ, Rβ)
 end
 
-# Specialized for only one backstress (NKin_R=0)
-function residual(X::ChabocheResidual{0}, material::Chaboche, old::ChabocheState, ϵ)
-    
-    σ_vm = vonmises_dev(X.σ_red_dev)
-    ν = X.σ_red_dev * ((3/2)*σ_vm)
-    Φ = yield_function(material, σ_vm, X.λ)
-
-    σ_dev = calc_sigma_dev(material.elastic, old, ϵ, ν, X.λ - old.λ)
-    β_hat0 = σ_dev - X.σ_red_dev
-    
-    β0 = old.β[1] + (X.λ - old.λ) * get_evolution(material.kinematic[1], ν, β_hat0)
-    
-    σ_red_dev = σ_dev - β0
-    
-    return ChabocheResidual(Φ, X.σ_red_dev-σ_red_dev)
+function initial_guess(m::Chaboche, old::ChabocheState{Nkin}, ϵ) where {Nkin}
+    σ_trial = calculate_sigma(m.elastic, ϵ-old.ϵₚ)
+    λ = old.λ
+    β = ntuple(i->old.β[i], Nkin)
+    return ChabocheResidual(σ_trial,λ,β)
 end
 
-function get_plastic_output(cache::ChabocheCache, m::Chaboche, state_old::ChabocheState{NKin,Ts,N}, ϵ::SymmetricTensor{2,3}, dσdϵ_elastic::SymmetricTensor{4,3}) where {NKin,Ts,N}
-    # σ = σ(X(ϵ), ϵ) yields
-    # dσ/dϵ = ∂σ/∂ϵ + ∂σ/∂X : dX/dϵ              [1]
-    # R = R(X(ϵ), ϵ) yields
-    # dR/dϵ = 0 = ∂R/∂ϵ + ∂R/∂X : dXdϵ           [2]
-    # Solve [2] for dX/dϵ
-    # dX/dϵ = - [∂R/∂X]^-1 : ∂R∂ϵ                [3]
-    # Insert [3] in [1]
-    # dσ/dϵ = ∂σ/∂ϵ - ∂σ/∂X : [∂R/∂X]^-1 : ∂R/∂ϵ [4]
-    
-    X_vec = cache.R_X_oncediff.x_f
-    dRdX = cache.R_X_oncediff.DF
-    X_tensor = frommandel(ChabocheResidual{NKin-1}, X_vec)
-
-    # Calculate σ and ∂σ∂X using automatic differentiation
-    σ_X_vec!(σ_vector, x_vector) = vector_residual!((x)->get_sigma(m, state_old, x, ϵ), σ_vector, x_vector, X_tensor)
-    ∂σ∂X = cache.v6xn
-    σ_vec = cache.v6
-    diff_result = DiffResults.DiffResult(σ_vec, (∂σ∂X,))
-    ForwardDiff.jacobian!(diff_result, σ_X_vec!, σ_vec, X_vec)
-    σ = frommandel(SymmetricTensor{2,3}, diff_result.value)
-
-    # Calculate ∂R/∂ϵ using automatic differentiation
-    R_ϵ_vec!(r_vector, ϵ_vector) = vector_residual!((ϵ_arg)->residual(X_tensor, m, state_old, ϵ_arg), r_vector, ϵ_vector, ϵ)
-    ϵ_vec = cache.v6    # Use cache value (give name that makes more sense)
-    tomandel!(ϵ_vec, ϵ)
-    R_vec = cache.R_X_oncediff.x_df
-    ∂R∂ϵ = cache.vnx6
-    ForwardDiff.jacobian!(∂R∂ϵ, R_ϵ_vec!, R_vec, ϵ_vec)
-
-    # Calculate full tangent stiffness 
-    dσdϵ = dσdϵ_elastic - frommandel(SymmetricTensor{4,3}, ∂σ∂X*(dRdX\∂R∂ϵ))
-    
-    # Calculate new state variables
-    λ = X_tensor.λ
-    Δλ = λ-state_old.λ
-    σ_red_dev = X_tensor.σ_red_dev
-    ν = (3.0/2.0) * σ_red_dev / vonmises_dev(σ_red_dev)
-    
-    if NKin > 1
-        β = ntuple(i-> i==1 ? dev(σ) - σ_red_dev - sum(X_tensor.β1) : X_tensor.β1[i-1], NKin)
-    else
-        β = (dev(σ) - σ_red_dev,)
-    end
-    
-    ϵₚ = state_old.ϵₚ + Δλ * ν
-    state = ChabocheState(ϵₚ, λ, β)
-    
-    return σ, dσdϵ, state
+function calculate_sigma(m::LinearIsotropicElasticity, ϵₑ)
+    return 3*m.K*vol(ϵₑ) + 2 * m.G * dev(ϵₑ)
 end
 
-function initial_guess(material::Chaboche, state_old::ChabocheState{Nkin, T, N}, ϵ) where {T, Nkin, N}
-    if Nkin<1
-        error("Nkin < 1 is not supported")
-    end
-    # Becomes trial by setting Δλ=0
-    σ_trial_dev = calc_sigma_dev(material.elastic, state_old, ϵ, ϵ, 0.0)
-    λ = state_old.λ
-    σ_red_trial = σ_trial_dev - sum(state_old.β)
-    
-    if Nkin > 1
-        return ChabocheResidual(λ,σ_red_trial,ntuple(i->state_old.β[i], Nkin-1))
-    else
-        return ChabocheResidual(λ,σ_red_trial)
-    end
+function calculate_elastic_strain(old::ChabocheState, ϵ, ν, Δλ)
+    return ϵ - calculate_plastic_strain(old, ν, Δλ)
 end
 
-
-function solve_local_problem!(cache::ChabocheCache, m::Chaboche, state_old::ChabocheState{Nkin,Ts,N}, ϵ::SymmetricTensor{2,3},  options::Dict{Symbol, Any}) where {Ts,Nkin,N}
-    
-    x0 = initial_guess(m, state_old, ϵ)
-    rf!(r_vector, x_vector) = vector_residual!((x)->residual(x,m,state_old,ϵ), r_vector, x_vector, x0)  # Using x0 as template for residual instead of material as this is related to Tensors
-    update_cache!(cache.R_X_oncediff, rf!)
-    
-    tomandel!(cache.R_X_oncediff.x_f, x0)
-    # Should this be centrally managed? I.e. process_options or similar?
-    nlsolve_options = get(options, :nlsolve_params, Dict{Symbol, Any}(:method=>:newton))
-    haskey(nlsolve_options, :method) || merge!(nlsolve_options, Dict{Symbol, Any}(:method=>:newton)) # set newton if the user did not supply another method
-    
-    # Solve local problem:
-    result = NLsolve.nlsolve(cache.R_X_oncediff, cache.R_X_oncediff.x_f; nlsolve_options...)
-    
-    # Is this necessary?
-    cache.R_X_oncediff.x_f = result.zero
-    
-    return result.f_converged
-end
-
-function get_sigma(material::Chaboche, state_old::ChabocheState, X::ChabocheResidual, ϵ::SymmetricTensor{2,3})
-    Δλ = X.λ - state_old.λ
-    σ_red_dev = X.σ_red_dev
-    ν = (3.0/2.0) * σ_red_dev / vonmises_dev(σ_red_dev)
-    σ = calc_sigma(material.elastic, state_old, ϵ, ν, Δλ)
-    return σ
-end
-
-function calc_sigma(material::LinearIsotropicElasticity, state_old::ChabocheState, ϵ, ν, Δλ)
-    return 3 * material.K*vol(ϵ) + calc_sigma_dev(material, state_old, ϵ, Δλ, ν)
-end
-
-function calc_sigma_dev(material::LinearIsotropicElasticity, state_old::ChabocheState, ϵ, ν, Δλ)
-    return 2 * material.G * (dev(ϵ - state_old.ϵₚ) - Δλ*ν)
-end
-
-function yield_function(material::Chaboche{Tp,ElType,IsoType,KinType}, σ_vm_red::Number, λ) where {Tp,ElType,IsoType<:NTuple{Niso,Any},KinType} where {Niso}
-    κ = sum(ntuple(i->get_hardening(material.isotropic[i], λ), Niso))
-    return σ_vm_red - (κ + material.σ_y0)
-end
-
-function yield_function(material::Chaboche, σ_red_dev::AbstractTensor, λ)
-    return yield_function(material, vonmises(σ_red_dev), λ)
+function calculate_plastic_strain(old::ChabocheState, ν, Δλ)
+    return old.ϵₚ + Δλ*ν
 end
