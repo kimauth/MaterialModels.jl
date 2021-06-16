@@ -153,7 +153,6 @@ function material_response(material::Chaboche, ϵ::SymmetricTensor{2,3}, state_o
             σ, dσdϵ, state = get_plastic_output(cache, material, state_old, σ_trial, dσdϵ_elastic)
         else
             σ, dσdϵ, state = (σ_trial, dσdϵ_elastic, state_old)
-            println("Did not converge!")
         end
         LinearAlgebra.BLAS.set_num_threads(num_blas_threads)
         return σ, dσdϵ, state, converged
