@@ -146,15 +146,12 @@ function material_response(material::Chaboche, ϵ::SymmetricTensor{2,3}, state_o
     if Φ_trial < 0
         return σ_trial, dσdϵ_elastic, state_old, true
     else
-        num_blas_threads = LinearAlgebra.BLAS.get_num_threads() # (~ 2ns)
-        LinearAlgebra.BLAS.set_num_threads(1)                   # Big performance benefit, takes ~8ns
         converged = solve_local_problem!(cache, material, state_old, ϵ, options)
         if converged
             σ, dσdϵ, state = get_plastic_output(cache, material, state_old, σ_trial, dσdϵ_elastic)
         else
             σ, dσdϵ, state = (σ_trial, dσdϵ_elastic, state_old)
         end
-        LinearAlgebra.BLAS.set_num_threads(num_blas_threads)
         return σ, dσdϵ, state, converged
     end
     
