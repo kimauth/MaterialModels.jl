@@ -53,7 +53,7 @@ function Tensors.frommandel(::Type{<:ChabocheResidual{NKin_R}}, v::AbstractVecto
 end
 
 function initial_material_state(material::Chaboche{T}) where {T}
-    ChabocheState(zero(SymmetricTensor{2,3,T}), 0.0, ntuple(i->zero(SymmetricTensor{2,3,T}), Val{length(material.kinematic)}()))
+    ChabocheState(zero(SymmetricTensor{2,3,T}), 0.0, ntuple(i->zero(SymmetricTensor{2,3,T}), length(material.kinematic)))
 end
 
 # Definition of material cache
@@ -171,7 +171,7 @@ function residual(X::ChabocheResidual{NKin_R}, material::Chaboche, old::Chaboche
     if NKin_R > 0
         β_hat0 = σ_dev - X.σ_red_dev - sum(X.β1)
         β_hat1 = X.β1
-        β1 = ntuple(i->old.β[i+1] + Δλ * get_evolution(material.kinematic[i+1], ν, β_hat1[i]), Val{NKin_R}())
+        β1 = ntuple(i->old.β[i+1] + Δλ * get_evolution(material.kinematic[i+1], ν, β_hat1[i]), NKin_R)
     else
         β_hat0 = σ_dev - X.σ_red_dev
     end
@@ -180,7 +180,7 @@ function residual(X::ChabocheResidual{NKin_R}, material::Chaboche, old::Chaboche
 
     if NKin_R > 0
         σ_red_dev = σ_dev - β0 - sum(β1)
-        R = ChabocheResidual(Φ, X.σ_red_dev-σ_red_dev, ntuple(i->β1[i]-β_hat1[i], Val{NKin_R}()))
+        R = ChabocheResidual(Φ, X.σ_red_dev-σ_red_dev, ntuple(i->β1[i]-β_hat1[i], NKin_R))
     else
         σ_red_dev = σ_dev - β0
         R = ChabocheResidual(Φ, X.σ_red_dev-σ_red_dev)
@@ -266,7 +266,7 @@ function initial_guess(material::Chaboche, state_old::ChabocheState{Nkin, T, N},
     σ_red_trial = σ_trial_dev - sum(state_old.β)
     
     if Nkin > 1
-        return ChabocheResidual(λ,σ_red_trial,ntuple(i->state_old.β[i], Val{Nkin-1}()))
+        return ChabocheResidual(λ,σ_red_trial,ntuple(i->state_old.β[i], Nkin-1))
     else
         return ChabocheResidual(λ,σ_red_trial)
     end
@@ -310,7 +310,7 @@ function calc_sigma_dev(material::LinearIsotropicElasticity, state_old::Chaboche
 end
 
 function yield_function(material::Chaboche{Tp,ElType,IsoType,KinType}, σ_vm_red::Number, λ) where {Tp,ElType,IsoType<:NTuple{Niso,Any},KinType} where {Niso}
-    κ = sum(ntuple(i->get_hardening(material.isotropic[i], λ), Val{Niso}()))
+    κ = sum(ntuple(i->get_hardening(material.isotropic[i], λ), Niso))
     return σ_vm_red - (κ + material.σ_y0)
 end
 
