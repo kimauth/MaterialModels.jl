@@ -219,30 +219,21 @@ function get_plastic_output(cache::ChabocheCache, m::Chaboche, state_old::Chaboc
     dRdX = cache.R_X_oncediff.DF
     X_tensor = frommandel(ChabocheResidual{NKin-1}, X_vec)
 
-    # ∂σ∂X
-    # - Stress (vector) function:
+    # Calculate σ and ∂σ∂X using automatic differentiation
     σ_X_vec!(σ_vector, x_vector) = vector_residual!((x)->get_sigma(m, state_old, x, ϵ), σ_vector, x_vector, X_tensor)
-    σ_vec = cache.v6
-    # - Preallocate (should have been done beforehand, problem with Dual Tag values?)
-    cfg = ForwardDiff.JacobianConfig(σ_X_vec!, σ_vec, X_vec, ForwardDiff.Chunk{length(X_vec)}())
-    # - Create DiffResult (this should be non-allocating)
     ∂σ∂X = cache.v6xn
+    σ_vec = cache.v6
     diff_result = DiffResults.DiffResult(σ_vec, (∂σ∂X,))
-    # - Calculate σ and ∂σ∂X
-    ForwardDiff.jacobian!(diff_result, σ_X_vec!, σ_vec, X_vec, cfg)
+    ForwardDiff.jacobian!(diff_result, σ_X_vec!, σ_vec, X_vec)
     σ = frommandel(SymmetricTensor{2,3}, diff_result.value)
 
-    # ∂R/∂ϵ
-    # - Specialized residual (vector) function:
+    # Calculate ∂R/∂ϵ using automatic differentiation
     R_ϵ_vec!(r_vector, ϵ_vector) = vector_residual!((ϵ_arg)->residual(X_tensor, m, state_old, ϵ_arg), r_vector, ϵ_vector, ϵ)
     ϵ_vec = cache.v6    # Use cache value (give name that makes more sense)
     tomandel!(ϵ_vec, ϵ)
-    # - Preallocate cfg (should have been done beforehand, problem with Dual Tag values?)
     R_vec = cache.R_X_oncediff.x_df
-    cfg = ForwardDiff.JacobianConfig(R_ϵ_vec!, R_vec, ϵ_vec, ForwardDiff.Chunk{length(6)}())
-    # - Calculate ∂R∂ϵ (only jacobian required, no need for diff results)
     ∂R∂ϵ = cache.vnx6
-    ForwardDiff.jacobian!(∂R∂ϵ, R_ϵ_vec!, R_vec, ϵ_vec, cfg)
+    ForwardDiff.jacobian!(∂R∂ϵ, R_ϵ_vec!, R_vec, ϵ_vec)
 
     # Calculate full tangent stiffness 
     dσdϵ = dσdϵ_elastic - frommandel(SymmetricTensor{4,3}, ∂σ∂X*(dRdX\∂R∂ϵ))
