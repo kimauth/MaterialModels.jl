@@ -4,8 +4,8 @@
     # constructor
     m = Chaboche(elastic=LinearIsotropicElasticity(E=210.e3, ν=0.3),
                   σ_y0=100.0,
-                  isotropic=(IsotropicHardeningVoce(Hiso=100000.0, κ∞=100.0),), # Can add more dragstresses by more entries in Tuple)
-                  kinematic=(KinematicHardeningAF(Hkin=1000000.0, β∞=200.0),)   # Can add more backstresses by more entries in Tuple
+                  isotropic=(Voce(Hiso=100000.0, κ∞=100.0),), # Can add more dragstresses by more entries in Tuple)
+                  kinematic=(ArmstrongFrederick(Hkin=1000000.0, β∞=200.0),)   # Can add more backstresses by more entries in Tuple
     )
     cache = get_cache(m)
 
@@ -33,10 +33,10 @@
     # Two back-stresses, one Armstrong-Frederick and one Ohno-Wang
     m = Chaboche(elastic=LinearIsotropicElasticity(E=210.e3, ν=0.3),
                  σ_y0=100.0,
-                 isotropic=(IsotropicHardeningVoce(Hiso=100000.0, κ∞=100.0),
-                            IsotropicHardeningSwift(K=100.0, λ0=1.0e-2, n=0.5)),
-                 kinematic=(KinematicHardeningAF(Hkin=40.e3, β∞=200.0),
-                            KinematicHardeningOW(Hkin=30.e3, β∞=200.0, mexp=4.0))
+                 isotropic=(Voce(Hiso=100000.0, κ∞=100.0),
+                            Swift(K=100.0, λ0=1.0e-2, n=0.5)),
+                 kinematic=(ArmstrongFrederick(Hkin=40.e3, β∞=200.0),
+                            OhnoWang(Hkin=30.e3, β∞=200.0, mexp=4.0))
     )
 
     cache = get_cache(m)

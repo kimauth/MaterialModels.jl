@@ -8,7 +8,6 @@ import ForwardDiff
 import DiffResults
 using TimerOutputs
 using StaticArrays
-using LinearAlgebra
 
 
 
@@ -89,7 +88,7 @@ export LinearElasticState, PlasticState
 
 export Chaboche
 export LinearIsotropicElasticity
-export IsotropicHardeningVoce, IsotropicHardeningSwift
-export KinematicHardeningAF, KinematicHardeningDB, KinematicHardeningOW
+export Voce, Swift
+export ArmstrongFrederick, Delobelle, OhnoWang
 
 end
