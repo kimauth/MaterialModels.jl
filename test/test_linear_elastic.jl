@@ -20,8 +20,8 @@ function get_LinearElastic_loading()
     return [SymmetricTensor{2,3}((ε, ε/10, 0.0, 0.0, 0.0, 0.0)) for ε in loading]
 end  
 
-@testset "LinearElastic checksum" begin
+@testset "LinearElastic jld2" begin
     m = LinearElastic(E=200e3, ν=0.3)
     loading = get_LinearElastic_loading()
-    check_checksum(m, loading, "LinearElastic1")#, OVERWRITE_CHECKSUMS=false)
+    check_jld2(m, loading, "LinearElastic1")#, OVERWRITE_JLD2=false)
 end
