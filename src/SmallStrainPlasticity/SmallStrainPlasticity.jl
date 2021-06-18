@@ -155,7 +155,7 @@ function material_response(m::Chaboche, ϵ::SymmetricTensor{2,3}, old::ChabocheS
             inv_J_σσ = frommandel(SymmetricTensor{4,3}, inv(dRdx))
             dσdϵ = inv_J_σσ ⊡ dσdϵ_elastic
             σ_red_dev = dev(x.σ) - sum(x.β)
-            ϵₚ = calculate_plastic_strain(old, σ_red_dev * ((3/2)*vonmises_dev(σ_red_dev)), x.λ-old.λ)
+            ϵₚ = calculate_plastic_strain(old, σ_red_dev * ((3/2)/vonmises_dev(σ_red_dev)), x.λ-old.λ)
             return x.σ, dσdϵ, ChabocheState(ϵₚ, x.λ, x.β), true
         else
             return σ_trial, dσdϵ_elastic, old, false
@@ -169,7 +169,7 @@ function residual(x::ChabocheResidual{NKin}, m::Chaboche, old::ChabocheState, ϵ
     σ_red_dev = dev(x.σ) - sum(x.β)
     σ_vm = vonmises_dev(σ_red_dev)
     Δλ = x.λ-old.λ
-    ν = σ_red_dev * ((3/2)*σ_vm)                    # Gradient of von mises yield surface
+    ν = σ_red_dev * ((3/2)/σ_vm)                    # Gradient of von mises yield surface
     ϵₑ = calculate_elastic_strain(old, ϵ, ν, Δλ)    # Using assumption of associative plasticity
     κ = sum(get_hardening.(m.isotropic, x.λ))         
 
