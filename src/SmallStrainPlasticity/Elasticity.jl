@@ -17,6 +17,8 @@ LinearIsotropicElasticity(;E, ν) = LinearIsotropicElasticity(E, ν)    # Keywor
 # Elastic material
 get_cache(::LinearIsotropicElasticity) = nothing
 
+initial_material_state(::LinearIsotropicElasticity) = nothing
+
 function material_response(m::LinearIsotropicElasticity, ϵ::SymmetricTensor{2,3}, state_old, Δt::AbstractFloat; cache=get_cache(m), options::Dict{Symbol, Any} = Dict{Symbol, Any}())
     ν = (3*m.K - 2*m.G)/(2*(3*m.K+m.G))    # Calculate poissons ratio
     
