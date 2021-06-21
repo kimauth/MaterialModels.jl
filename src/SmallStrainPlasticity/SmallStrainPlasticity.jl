@@ -150,7 +150,7 @@ function material_response(m::Chaboche, ϵ::SymmetricTensor{2,3}, old::ChabocheS
         result = NLsolve.nlsolve(cache.R_X_oncediff, cache.R_X_oncediff.x_f; nlsolve_options...)
 
         if result.f_converged
-            x = frommandel(ChabocheResidual{Nkin}, result.zero)
+            x = frommandel(ChabocheResidual{Nkin}, result.zero::MVector{7 + 6*Nkin, T})
             dRdx = cache.R_X_oncediff.DF
             inv_J_σσ = frommandel(SymmetricTensor{4,3}, inv(dRdx))
             dσdϵ = inv_J_σσ ⊡ dσdϵ_elastic
