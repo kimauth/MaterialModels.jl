@@ -135,7 +135,7 @@ function material_response(m::Chaboche, ϵ::SymmetricTensor{2,3}, old::ChabocheS
     Φ_trial = vonmises(σ_trial-sum(old.β)) - (m.σ_y0 + sum(get_hardening.(m.isotropic, old.λ)))
 
     if Φ_trial < 0
-        return σ_trial, dσdϵ_elastic, old, true
+        return σ_trial, dσdϵ_elastic, old
     else
         x0 = initial_guess(m, old, ϵ)
         rf!(r_vector, x_vector) = vector_residual!((x)->residual(x,m,old,ϵ), r_vector, x_vector, x0)  # Using x0 as template for residual instead of material as this is related to Tensors
@@ -156,9 +156,9 @@ function material_response(m::Chaboche, ϵ::SymmetricTensor{2,3}, old::ChabocheS
             dσdϵ = inv_J_σσ ⊡ dσdϵ_elastic
             σ_red_dev = dev(x.σ) - sum(x.β)
             ϵₚ = calculate_plastic_strain(old, σ_red_dev * ((3/2)/vonmises_dev(σ_red_dev)), x.λ-old.λ)
-            return x.σ, dσdϵ, ChabocheState(ϵₚ, x.λ, x.β), true
+            return x.σ, dσdϵ, ChabocheState(ϵₚ, x.λ, x.β)
         else
-            return σ_trial, dσdϵ_elastic, old
+            error("Material model not converged. Could not find material state.")
         end
     end
     

@@ -23,9 +23,9 @@
 
     Δt = 1.0    # No influence...
     
-    σ, ∂σ∂ε, temp_state, converged = material_response(m, ϵ, state, Δt; cache=cache)
+    σ, ∂σ∂ε, temp_state = material_response(m, ϵ, state, Δt; cache=cache)
 
-    @test converged
+    @test true  # Check that it ran (throws error if not converged)
 
     # Example with a more advanced material:
     # Linear isotropic elasticity 
@@ -43,8 +43,8 @@
     state = initial_material_state(m)
     Δt = 1.0    # No influence...
     ϵ = SymmetricTensor{2, 3}((i,j) -> i==j ? (i==1 ? 0.1/100.0 : -0.3*0.1/100.0) : 0.0)
-    σ, ∂σ∂ε, temp_state, converged = material_response(m, ϵ, state, Δt; cache=cache)
+    σ, ∂σ∂ε, temp_state = material_response(m, ϵ, state, Δt; cache=cache)
 
-    @test converged
+    @test true  # Check that it ran (throws error if not converged)
     
 end
