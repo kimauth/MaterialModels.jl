@@ -18,7 +18,7 @@ get_cache(::LinearIsotropicElasticity) = nothing
 
 initial_material_state(::LinearIsotropicElasticity) = nothing
 
-function material_response(m::LinearIsotropicElasticity, ϵ::SymmetricTensor{2,3}, state_old, Δt::AbstractFloat; cache=get_cache(m), options::Dict{Symbol, Any} = Dict{Symbol, Any}())
+function material_response(m::LinearIsotropicElasticity, ϵ::SymmetricTensor{2,3}, state_old, Δt=nothing; cache=get_cache(m), options::Dict{Symbol, Any} = Dict{Symbol, Any}())
     ν = (3*m.K - 2*m.G)/(2*(3*m.K+m.G))    # Calculate poissons ratio
     
     σ = 2 * m.G*dev(ϵ) + 3 * m.K*vol(ϵ)   # Calculate stress
@@ -29,7 +29,6 @@ function material_response(m::LinearIsotropicElasticity, ϵ::SymmetricTensor{2,3
     𝔻 = SymmetricTensor{4, 3}(Dfun)
     
     # Return updated values
-    converged = true
     state = state_old
-    return σ, 𝔻, state, converged
+    return σ, 𝔻, state
 end

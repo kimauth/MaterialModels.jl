@@ -129,9 +129,9 @@ For this specific case,
 - `options::Dict{Symbol, Any}`: Solver options for the non-linear solver. Under the key `:nlsolve_params` keyword arguments for `nlsolve` can be handed over.
 See [NLsolve documentation](https://github.com/JuliaNLSolvers/NLsolve.jl#common-options). By default the Newton solver will be used.
 """
-function material_response(m::Chaboche, ϵ::SymmetricTensor{2,3}, old::ChabocheState{Nkin,T,N}, Δt; cache=get_cache(m), options::Dict{Symbol, Any} = Dict{Symbol, Any}()) where {T,N,Nkin}
+function material_response(m::Chaboche, ϵ::SymmetricTensor{2,3}, old::ChabocheState{Nkin,T,N}, Δt=nothing; cache=get_cache(m), options::Dict{Symbol, Any} = Dict{Symbol, Any}()) where {T,N,Nkin}
     
-    σ_trial, dσdϵ_elastic, _, _ = material_response(m.elastic, ϵ-old.ϵₚ, nothing, Δt)
+    σ_trial, dσdϵ_elastic, _ = material_response(m.elastic, ϵ-old.ϵₚ, initial_material_state(m.elastic))
     Φ_trial = vonmises(σ_trial-sum(old.β)) - (m.σ_y0 + sum(get_hardening.(m.isotropic, old.λ)))
 
     if Φ_trial < 0
@@ -158,7 +158,7 @@ function material_response(m::Chaboche, ϵ::SymmetricTensor{2,3}, old::ChabocheS
             ϵₚ = calculate_plastic_strain(old, σ_red_dev * ((3/2)/vonmises_dev(σ_red_dev)), x.λ-old.λ)
             return x.σ, dσdϵ, ChabocheState(ϵₚ, x.λ, x.β), true
         else
-            return σ_trial, dσdϵ_elastic, old, false
+            return σ_trial, dσdϵ_elastic, old
         end
     end
     
@@ -187,9 +187,14 @@ function initial_guess(m::Chaboche, old::ChabocheState{Nkin}, ϵ) where {Nkin}
     return ChabocheResidual(σ_trial,λ,β)
 end
 
-function calculate_sigma(m::LinearIsotropicElasticity, ϵₑ)
-    return 3*m.K*vol(ϵₑ) + 2 * m.G * dev(ϵₑ)
+# Functions for different elastic laws (elasticity = path independent, no state required)
+function calculate_sigma(m::AbstractElasticity, ϵₑ)
+    σ, _, _ = material_response(m, ϵₑ, initial_material_state(m))
+    return σ
 end
+
+# Specialized function (faster)
+calculate_sigma(m::LinearIsotropicElasticity, ϵₑ) = 3*m.K*vol(ϵₑ) + 2 * m.G * dev(ϵₑ)
 
 function calculate_elastic_strain(old::ChabocheState, ϵ, ν, Δλ)
     return ϵ - calculate_plastic_strain(old, ν, Δλ)

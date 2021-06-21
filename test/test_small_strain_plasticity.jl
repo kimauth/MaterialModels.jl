@@ -31,7 +31,7 @@
     # Linear isotropic elasticity 
     # Two isotropic hardening laws: Voce and Swift 
     # Two back-stresses, one Armstrong-Frederick and one Ohno-Wang
-    m = Chaboche(elastic=LinearIsotropicElasticity(E=210.e3, ν=0.3),
+    m = Chaboche(elastic=LinearElastic(E=210.e3, ν=0.3),
                  σ_y0=100.0,
                  isotropic=(Voce(Hiso=100000.0, κ∞=100.0),
                             Swift(K=100.0, λ0=1.0e-2, n=0.5)),
