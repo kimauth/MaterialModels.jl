@@ -1,6 +1,6 @@
 @testset "CrystalViscoPlastic" begin
     slipsystems = MaterialModels.slipsystems(MaterialModels.FCC(), rand(RodriguesParam))
-    m = MaterialModels.CrystalViscoPlastic(E=200e3, ν=0.3, τ_y=400., H_iso=1e3, H_kin=1e3, q=0.0, α_∞=100., t_star=20., σ_c=50., m=10., slipsystems=slipsystems)
+    m = MaterialModels.CrystalViscoPlasticRed(E=200e3, ν=0.3, τ_y=400., H_iso=1e3, H_kin=1e3, q=0.0, α_∞=100., t_star=20., σ_c=50., m=10., slipsystems=slipsystems)
     S = MaterialModels.get_n_slipsystems(m)
     state = initial_material_state(m)
 
@@ -41,10 +41,11 @@ function get_visco_plastic_loading()
     return ε
 end  
 
-@testset "CrystalViscoPlastic jld2" begin
+@testset "CrystalViscoPlasticRed jld2" begin
     slipsystems = MaterialModels.slipsystems(MaterialModels.FCC(),RodriguesParam(-0.665267, 0.0203875, 1.08633))
-    m = MaterialModels.CrystalViscoPlastic(E=200e3, ν=0.3, τ_y=400., H_iso=1e3, H_kin=1e3, q=0.0, α_∞=100., t_star=20., σ_c=50., m=10., slipsystems=slipsystems)
+    m = MaterialModels.CrystalViscoPlasticRed(E=200e3, ν=0.3, τ_y=400., H_iso=1e3, H_kin=1e3, q=0.0, α_∞=100., t_star=20., σ_c=50., m=10., slipsystems=slipsystems)
 
     loading = get_visco_plastic_loading()
+    # want the same results as from the other implementation
     check_jld2(m, loading, "CrystalViscoPlastic1")#, debug_print=true, OVERWRITE_JLD2=true)
 end

@@ -27,18 +27,7 @@
     # plastic branch
     Δε = Δε = SymmetricTensor{2,3,Float64}((i,j) -> i==1 && j==1 ? 2ε11_yield : (i == j ? -2ε11_yield*m.ν : 0.0))
     σ, ∂σ∂ε, temp_state = material_response(m, Δε, state; cache=cache)
-
-    # @btime constitutive_driver($m, $Δε, $state; cache=$cache, options=$Dict{Symbol,Any}())
-
-    # σ_trial = state.σ + m.Eᵉ ⊡ Δε
-    # x0 = MaterialModels.Residuals{Plastic}(σ_trial, state.κ, state.α, state.μ)
-    # @btime MaterialModels.residuals($x0, $m, $state, $Δε)
-    # @btime frommandel($(MaterialModels.Residuals{Plastic}), $rand(14))
-    # x_vector = zeros(14)
-    # @btime tomandel!($x_vector, $x0)
-    # @btime MaterialModels.vector_residual!($f, $similar(x_vector), $x_vector, m)
-    # f(x) = MaterialModels.residuals(x, m, state, Δε)
-    # vector_residual!((x->MaterialModels.residuals(x, m, state, zero(SymmetricTensor{2,3}))), r_vector, x_vector, m)
+    @test sqrt(3/2)*norm(dev(σ-temp_state.α)) > m.σ_y
 end
 
 
@@ -53,10 +42,10 @@ function get_Plastic_loading()
     return ε
 end  
 
-@testset "Plastic checksum" begin
+@testset "Plastic jld2" begin
     m = Plastic(E=200e3, ν=0.3, σ_y=200., H=50., r=0.5, κ_∞=13., α_∞=13.)
 
     loading = get_Plastic_loading()
-    check_checksum(m, loading, "Plastic1")#, debug_print=true, OVERWRITE_CHECKSUMS=true)
+    check_jld2(m, loading, "Plastic1")#, debug_print=true, OVERWRITE_JLD2=true)
 end
 

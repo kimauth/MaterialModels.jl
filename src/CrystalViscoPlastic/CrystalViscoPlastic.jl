@@ -47,7 +47,8 @@ end
 # keyword argument constructor
 CrystalViscoPlastic(; E, ν, τ_y, H_iso, H_kin, q, α_∞, t_star, σ_c, m, slipsystems) = CrystalViscoPlastic(E, ν, τ_y, H_iso, H_kin, q, α_∞, t_star, σ_c, m, slipsystems)
 
-# to do: maybe parametrize with nslipsystems and use tuples?
+get_n_slipsystems(::CrystalViscoPlastic{S}) where S = S
+
 struct CrystalViscoPlasticState{dim,T,M,S} <: AbstractMaterialState
     σ::SymmetricTensor{2,dim,T,M}
     κ::SVector{S, Float64}
