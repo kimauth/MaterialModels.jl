@@ -70,7 +70,7 @@ include("Plastic.jl")
 include("CrystalViscoPlastic/slipsystems.jl")
 include("CrystalViscoPlastic/CrystalViscoPlastic.jl")
 include("CrystalViscoPlastic/CrystalViscoPlasticRed.jl")
-include("SmallStrainPlasticity/SmallStrainPlasticity.jl")
+include("VonMisesPlasticity/VonMisesPlasticity.jl")
 
 include("nonlinear_solver.jl")
 include("wrappers.jl")
@@ -83,7 +83,7 @@ export LinearElastic, Plastic
 export LinearElasticState, PlasticState
 export OneD, UniaxialStrain, UniaxialStress, PlaneStrain, PlaneStress
 
-export Chaboche
+export VonMisesPlasticity
 export LinearIsotropicElasticity
 export Voce, Swift
 export ArmstrongFrederick, Delobelle, OhnoWang

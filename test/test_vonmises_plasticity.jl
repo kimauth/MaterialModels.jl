@@ -1,11 +1,11 @@
-@testset "SmallStrainPlasticity" begin
+@testset "VonMisesPlasticity" begin
     # Basic setup with Voce isotropic hardening and one back-stress of Armstrong-Frederick time
 
     # constructor
-    m = Chaboche(elastic=LinearIsotropicElasticity(E=210.e3, ν=0.3),
-                  σ_y0=100.0,
-                  isotropic=(Voce(Hiso=100000.0, κ∞=100.0),), # Can add more dragstresses by more entries in Tuple)
-                  kinematic=(ArmstrongFrederick(Hkin=1000000.0, β∞=200.0),)   # Can add more backstresses by more entries in Tuple
+    m = VonMisesPlasticity(elastic=LinearIsotropicElasticity(E=210.e3, ν=0.3),
+                           σ_y0=100.0,
+                           isotropic=(Voce(Hiso=100000.0, κ∞=100.0),), # Can add more dragstresses by more entries in Tuple)
+                           kinematic=(ArmstrongFrederick(Hkin=1000000.0, β∞=200.0),)   # Can add more backstresses by more entries in Tuple
     )
     cache = get_cache(m)
 
@@ -19,7 +19,7 @@
     λ_old = 0.0015338757291717328
     β_old = SymmetricTensor{2, 3}((i,j) -> i==j ? (i==1 ? 133.268 : -66.6339) : 0.0)
 
-    state_old = MaterialModels.ChabocheState(ϵₚ_old,λ_old, (β_old,))
+    state_old = MaterialModels.VonMisesPlasticityState(ϵₚ_old,λ_old, (β_old,))
 
     Δt = 1.0    # No influence...
     
@@ -31,12 +31,12 @@
     # Linear isotropic elasticity 
     # Two isotropic hardening laws: Voce and Swift 
     # Two back-stresses, one Armstrong-Frederick and one Ohno-Wang
-    m = Chaboche(elastic=LinearElastic(E=210.e3, ν=0.3),
-                 σ_y0=100.0,
-                 isotropic=(Voce(Hiso=100000.0, κ∞=100.0),
-                            Swift(K=100.0, λ0=1.0e-2, n=0.5)),
-                 kinematic=(ArmstrongFrederick(Hkin=40.e3, β∞=200.0),
-                            OhnoWang(Hkin=30.e3, β∞=200.0, mexp=4.0))
+    m = VonMisesPlasticity(elastic=LinearElastic(E=210.e3, ν=0.3),
+                           σ_y0=100.0,
+                           isotropic=(Voce(Hiso=100000.0, κ∞=100.0),
+                                      Swift(K=100.0, λ0=1.0e-2, n=0.5)),
+                           kinematic=(ArmstrongFrederick(Hkin=40.e3, β∞=200.0),
+                                      OhnoWang(Hkin=30.e3, β∞=200.0, mexp=4.0))
     )
 
     cache = get_cache(m)
