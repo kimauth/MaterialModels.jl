@@ -72,6 +72,7 @@ include("CrystalViscoPlastic/CrystalViscoPlastic.jl")
 include("CrystalViscoPlastic/CrystalViscoPlasticRed.jl")
 include("VonMisesPlasticity/VonMisesPlasticity.jl")
 
+include("utility_functions.jl")
 include("nonlinear_solver.jl")
 include("wrappers.jl")
 

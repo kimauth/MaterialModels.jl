@@ -1,4 +1,3 @@
-include("UtilityFunctions.jl")
 include("Elasticity.jl")
 include("IsotropicHardening.jl")
 include("KinematicHardening.jl")
