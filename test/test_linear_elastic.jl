@@ -8,8 +8,8 @@
     @test state.σ == zero(SymmetricTensor{2,3})
 
     # constitutive driver
-    Δε = rand(SymmetricTensor{2,3})
-    σ, ∂σ∂ε, temp_state = material_response(m, Δε, state)
+    ε = rand(SymmetricTensor{2,3})
+    σ, ∂σ∂ε, temp_state = material_response(m, ε, state)
     @test σ == temp_state.σ
     @test ∂σ∂ε == m.Eᵉ
 

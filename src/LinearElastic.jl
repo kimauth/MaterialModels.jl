@@ -53,8 +53,7 @@ Return the stress tensor, stress tangent and the new `MaterialState` for the giv
 \\boldsymbol{\\sigma} = \\mathbf{E}^\\text{e} : \\Delta \\boldsymbol{\\varepsilon} .
 ```
 """
-function material_response(m::LinearElastic, Δε::SymmetricTensor{2,3}, state::LinearElasticState{3}, Δt=nothing; cache=nothing, options=nothing)
-    Δσ = m.Eᵉ ⊡ Δε
-    σ = state.σ + Δσ
+function material_response(m::LinearElastic, ε::SymmetricTensor{2,3}, state::LinearElasticState{3}, Δt=nothing; cache=nothing, options=nothing)
+    σ = m.Eᵉ ⊡ ε
     return σ, m.Eᵉ, LinearElasticState(σ)
 end
