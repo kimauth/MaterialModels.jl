@@ -1,4 +1,4 @@
-
+abstract type AbstractElasticity <:AbstractMaterial end
 """
     LinearElastic(E, ν)
 
@@ -7,7 +7,7 @@ Isotropic linear elasticity.
 - `E::Float64`: Young's modulus
 - `ν::Float64`: Poisson's ratio
 """
-struct LinearElastic <: AbstractMaterial
+struct LinearElastic <: AbstractElasticity
     # parameters
     E::Float64 # Young's modulus
     ν::Float64 # Poisson's ratio
@@ -45,12 +45,12 @@ initial_material_state(::LinearElastic) = zero(LinearElasticState{3,Float64,6})
 # constitutive drivers generally operate in 3D 
 # (we could specialize for lower dimensions if needed for performance)
 """
-    material_response(m::LinearElastic, Δε::SymmetricTensor{2,3}, state::LinearElasticState{3})
+    material_response(m::LinearElastic, ε::SymmetricTensor{2,3}, state::LinearElasticState{3})
 
-Return the stress tensor, stress tangent and the new `MaterialState` for the given strain step Δε such that
+Return the stress tensor, stress tangent and the new `MaterialState` for the given strain ε such that
 
 ```math
-\\boldsymbol{\\sigma} = \\mathbf{E}^\\text{e} : \\Delta \\boldsymbol{\\varepsilon} .
+\\boldsymbol{\\sigma} = \\mathbf{E}^\\text{e} : \\boldsymbol{\\varepsilon} .
 ```
 """
 function material_response(m::LinearElastic, ε::SymmetricTensor{2,3}, state::LinearElasticState{3}, Δt=nothing; cache=nothing, options=nothing)
