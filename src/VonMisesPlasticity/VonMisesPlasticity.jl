@@ -1,4 +1,3 @@
-include("Elasticity.jl")
 include("IsotropicHardening.jl")
 include("KinematicHardening.jl")
 
@@ -174,15 +173,6 @@ function initial_guess(m::VonMisesPlasticity, old::VonMisesPlasticityState{Nkin}
     β = ntuple(i->old.β[i], Nkin)
     return VonMisesPlasticityResidual(σ_trial,λ,β)
 end
-
-# Functions for different elastic laws (elasticity = path independent, no state required)
-function calculate_sigma(m::AbstractElasticity, ϵₑ)
-    σ, _, _ = material_response(m, ϵₑ, initial_material_state(m))
-    return σ
-end
-
-# Specialized function (faster)
-calculate_sigma(m::LinearIsotropicElasticity, ϵₑ) = 3*m.K*vol(ϵₑ) + 2 * m.G * dev(ϵₑ)
 
 function calculate_elastic_strain(old::VonMisesPlasticityState, ϵ, ν, Δλ)
     return ϵ - calculate_plastic_strain(old, ν, Δλ)

@@ -46,5 +46,5 @@
     σ, ∂σ∂ε, temp_state = material_response(m, ϵ, state, Δt; cache=cache)
 
     @test true  # Check that it ran (throws error if not converged)
-    
+
 end

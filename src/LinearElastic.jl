@@ -58,6 +58,8 @@ Return the stress tensor, stress tangent and the new `MaterialState` for the giv
 ```
 """
 function material_response(m::LinearElastic, ε::SymmetricTensor{2,3}, state::LinearElasticState{3}, Δt=nothing; cache=nothing, options=nothing)
-    σ = m.Eᵉ ⊡ ε
+    σ = calculate_sigma(m, ε)
     return σ, m.Eᵉ, LinearElasticState(σ)
 end
+
+calculate_sigma(m::LinearElastic, ε) =  m.Eᵉ ⊡ ε    # Useful when calling from other materials
