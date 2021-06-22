@@ -18,7 +18,25 @@ get_cache(::LinearIsotropicElasticity) = nothing
 
 initial_material_state(::LinearIsotropicElasticity) = nothing
 
-function material_response(m::LinearIsotropicElasticity, ϵ::SymmetricTensor{2,3}, state_old, Δt=nothing; cache=get_cache(m), options::Dict{Symbol, Any} = Dict{Symbol, Any}())
+"""
+    material_response(m::LinearIsotropicElasticity, ϵ::SymmetricTensor{2,3}, state_old, Δt=nothing; <keyword arguments>)
+
+Return the stress tensor, stress tangent and the new `MaterialState` 
+The total (elastic) strain ϵ is given as input (state_old and Δt can be supplied, but have no influence)
+The stress is calculated as
+
+```math
+\\boldsymbol{\\sigma} = 2G \\boldsymbol{\\epsilon}^\\mathrm{dev} + 3K \\boldsymbol{\\epsilon}^\\mathrm{vol}
+```
+where ``\\boldsymbol{\\epsilon}^\\mathrm{vol} = \\boldsymbol{I}:\\boldsymbol{\\epsilon} \\boldsymbol{I}/3.0`` 
+is the volumetric strain and ``\\boldsymbol{\\epsilon}^\\mathrm{dev} = \\boldsymbol{\\epsilon} - \\boldsymbol{\\epsilon}^\\mathrm{vol}``
+is the deviatoric strain. 
+
+# Keyword arguments
+- `cache`: Not used
+- `options::Dict{Symbol, Any}`: Not used
+"""
+function material_response(m::LinearIsotropicElasticity, ϵ::SymmetricTensor{2,3}, state_old=initial_material_state(m), Δt=nothing; cache=get_cache(m), options::Dict{Symbol, Any} = Dict{Symbol, Any}())
     ν = (3*m.K - 2*m.G)/(2*(3*m.K+m.G))    # Calculate poissons ratio
     
     σ = 2 * m.G*dev(ϵ) + 3 * m.K*vol(ϵ)   # Calculate stress
