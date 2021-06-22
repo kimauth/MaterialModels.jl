@@ -46,11 +46,6 @@ function initial_material_state(material::VonMisesPlasticity{T}) where {T}
     VonMisesPlasticityState(zero(SymmetricTensor{2,3,T}), 0.0, ntuple(i->zero(SymmetricTensor{2,3,T}), length(material.kinematic)))
 end
 
-# Definition of material cache
-struct VonMisesPlasticityCache{NL_TF, NL_TDF, NL_TX}
-    R_X_oncediff::OnceDifferentiable{NL_TF, NL_TDF, NL_TX}
-end
-
 function get_cache(material::VonMisesPlasticity{T,ElType,IsoType,KinType}) where {T,ElType,IsoType,KinType}
     nx = 7 + 6*length(material.kinematic)
 
@@ -62,8 +57,7 @@ function get_cache(material::VonMisesPlasticity{T,ElType,IsoType,KinType}) where
     rf!(R, X) = vector_residual!(rf_tens, R, X, X_tensor)
     X0 = MVector{nx}(zeros(T, nx))
     # X0 only for shape and type information here:
-    R_X_oncediff = OnceDifferentiable(rf!, X0, X0; autodiff = :forward)
-    return VonMisesPlasticityCache(R_X_oncediff)
+    return OnceDifferentiable(rf!, X0, X0; autodiff = :forward)
 end
 
 """
@@ -136,19 +130,19 @@ function material_response(m::VonMisesPlasticity, ϵ::SymmetricTensor{2,3}, old:
     else
         x0 = initial_guess(m, old, ϵ)
         rf!(r_vector, x_vector) = vector_residual!((x)->residual(x,m,old,ϵ), r_vector, x_vector, x0)  # Using x0 as template for residual instead of material as this is related to Tensors
-        update_cache!(cache.R_X_oncediff, rf!)
+        update_cache!(cache, rf!)
         
-        tomandel!(cache.R_X_oncediff.x_f, x0)
+        tomandel!(cache.x_f, x0)
         # Should this be centrally managed? I.e. process_options or similar?
         nlsolve_options = get(options, :nlsolve_params, Dict{Symbol, Any}(:method=>:newton))
         haskey(nlsolve_options, :method) || merge!(nlsolve_options, Dict{Symbol, Any}(:method=>:newton)) # set newton if the user did not supply another method
         
         # Solve local problem:
-        result = NLsolve.nlsolve(cache.R_X_oncediff, cache.R_X_oncediff.x_f; nlsolve_options...)
+        result = NLsolve.nlsolve(cache, cache.x_f; nlsolve_options...)
 
         if result.f_converged
             x = frommandel(VonMisesPlasticityResidual{Nkin}, result.zero::MVector{7 + 6*Nkin, T})
-            dRdx = cache.R_X_oncediff.DF
+            dRdx = cache.DF
             inv_J_σσ = frommandel(SymmetricTensor{4,3}, inv(dRdx))
             dσdϵ = inv_J_σσ ⊡ dσdϵ_elastic
             σ_red_dev = dev(x.σ) - sum(x.β)
