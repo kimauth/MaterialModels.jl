@@ -191,3 +191,7 @@ end
 function calculate_plastic_strain(old::VonMisesPlasticityState, ν, Δλ)
     return old.ϵₚ + Δλ*ν
 end
+
+# This function belongs in LinearElastic.jl, but to avoid conflict with ka/use_full_strain
+# it is kept here until that branch is merged with main.
+calculate_sigma(m::LinearElastic, ε) =  m.Eᵉ ⊡ ε
