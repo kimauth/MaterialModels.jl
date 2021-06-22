@@ -115,6 +115,16 @@ and ``i\\in[1,N_\\mathrm{kin}]``.
 - `cache`: Cache for the iterative solver, used by NLsolve.jl. It is strongly recommended to pre-allocate the cache for repeated calls to `material_response`. See [`get_cache`](@ref).
 - `options::Dict{Symbol, Any}`: Solver options for the non-linear solver. Under the key `:nlsolve_params` keyword arguments for `nlsolve` can be handed over.
 See [NLsolve documentation](https://github.com/JuliaNLSolvers/NLsolve.jl#common-options). By default the Newton solver will be used.
+
+# Example
+```julia
+m = VonMisesPlasticity(elastic=LinearElastic(E=210.e3, ν=0.3),
+                       σ_y0=100.0,
+                       isotropic=(Voce(Hiso=-100.e3, κ∞=-100.0),Voce(Hiso=10.e3, κ∞=200.0)),
+                       kinematic=(ArmstrongFrederick(Hkin=200.e3, β∞=200.0),
+                                  OhnoWang(Hkin=1000.e3, β∞=200.0, mexp=3.0))
+```
+
 """
 function material_response(m::VonMisesPlasticity, ϵ::SymmetricTensor{2,3}, old::VonMisesPlasticityState{Nkin,T,N}, Δt=nothing; cache=get_cache(m), options::Dict{Symbol, Any} = Dict{Symbol, Any}()) where {T,N,Nkin}
     

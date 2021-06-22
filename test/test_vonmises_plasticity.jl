@@ -2,7 +2,7 @@
     # Basic setup with Voce isotropic hardening and one back-stress of Armstrong-Frederick time
 
     # constructor
-    m = VonMisesPlasticity(elastic=LinearIsotropicElasticity(E=210.e3, ν=0.3),
+    m = VonMisesPlasticity(elastic=LinearElastic(E=210.e3, ν=0.3),
                            σ_y0=100.0,
                            isotropic=(Voce(Hiso=100000.0, κ∞=100.0),), # Can add more dragstresses by more entries in Tuple)
                            kinematic=(ArmstrongFrederick(Hkin=1000000.0, β∞=200.0),)   # Can add more backstresses by more entries in Tuple
