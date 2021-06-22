@@ -1,4 +1,8 @@
+# Definition of materials of type AbstractElasticity: 
+# It does not rely on previous states to calculate the stress and stiffness
+# This allows it to be used inside other materials 
 abstract type AbstractElasticity <:AbstractMaterial end
+
 """
     LinearElastic(E, ν)
 
