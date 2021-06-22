@@ -5,12 +5,11 @@
 
     # initial state
     state = initial_material_state(m)
-    @test state.σ == zero(SymmetricTensor{2,3})
 
     # constitutive driver
     ε = rand(SymmetricTensor{2,3})
     σ, ∂σ∂ε, temp_state = material_response(m, ε, state)
-    @test σ == temp_state.σ
+    @test σ == m.Eᵉ ⊡ ε
     @test ∂σ∂ε == m.Eᵉ
 
 end
