@@ -9,7 +9,7 @@ end
 ArmstrongFrederick(;Hkin, β∞) = ArmstrongFrederick(Hkin, β∞)    # Keyword argument constructor
 
 """
-    get_evolution(param::ArmstrongFrederick, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor)
+    get_evolution(param::ArmstrongFrederick, ν::SecondOrderTensor, βᵢ::SecondOrderTensor)
 
     Armstrong-Frederick kinematic hardening law (doi: 10.1179/096034007X207589)
 
@@ -17,8 +17,8 @@ ArmstrongFrederick(;Hkin, β∞) = ArmstrongFrederick(Hkin, β∞)    # Keyword 
     g_{\\mathrm{kin},i}(\\nu, \\beta_i) = Hkin (\\frac{2}{3}\\boldsymbol{\\nu} - \\frac{\\boldsymbol{\\beta}_i}{\\beta_\\infty})
     ```
 """
-function get_evolution(param::ArmstrongFrederick, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor)
-    param.Hkin * ((2.0/3.0) * 𝛎 - 𝛃ᵢ/param.β∞)
+function get_evolution(param::ArmstrongFrederick, ν::SecondOrderTensor, βᵢ::SecondOrderTensor)
+    param.Hkin * ((2.0/3.0) * ν - βᵢ/param.β∞)
 end
 
 # Delobelle (Combination of Armstrong-Frederick and Burlet-Cailletaud)
@@ -30,7 +30,7 @@ end
 Delobelle(;Hkin, β∞, δ) = Delobelle(Hkin, β∞, δ)    # Keyword argument constructor
 
 """
-    get_evolution(param::Delobelle, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor)
+    get_evolution(param::Delobelle, ν::SecondOrderTensor, βᵢ::SecondOrderTensor)
 
     Kinematic hardening law according to Delobelle, which combines the Armstrong-Frederick law with the Burlet-Cailletaud law
     (doi: 10.1016/S0749-6419(95)00001-1)
@@ -43,10 +43,10 @@ Delobelle(;Hkin, β∞, δ) = Delobelle(Hkin, β∞, δ)    # Keyword argument c
     ```
     
 """
-function get_evolution(param::Delobelle, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor)
-    AF_Term = (param.δ/param.β∞) * 𝛃ᵢ                        # Armstrong Frederick term
-    BC_Term = (2.0/3.0) * (1.0-param.δ)*((ν⊡𝛃ᵢ)/param.β∞)*ν  # Burlet Cailletaud term
-    return param.Hkin * ((2.0/3.0) * 𝛎 - AF_Term - BC_Term)  # Complete evolution 
+function get_evolution(param::Delobelle, ν::SecondOrderTensor, βᵢ::SecondOrderTensor)
+    AF_Term = (param.δ/param.β∞) * βᵢ                        # Armstrong Frederick term
+    BC_Term = (2.0/3.0) * (1.0-param.δ)*((ν⊡βᵢ)/param.β∞)*ν  # Burlet Cailletaud term
+    return param.Hkin * ((2.0/3.0) * ν - AF_Term - BC_Term)  # Complete evolution 
 end
 
 # Ohno-Wang
@@ -58,7 +58,7 @@ end
 OhnoWang(;Hkin, β∞, mexp) = OhnoWang(Hkin, β∞, mexp)    # Keyword argument constructor
 
 """ 
-    get_evolution(param::OhnoWang{Tp}, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor{dim,Tβ}) where{Tp,Tβ,dim}
+    get_evolution(param::OhnoWang{Tp}, ν::SecondOrderTensor, βᵢ::SecondOrderTensor{dim,Tβ}) where{Tp,Tβ,dim}
 
     Kinematic hardening law according to Ohno-Wang (doi: 10.1016/0749-6419(93)90042-O)
 
@@ -71,12 +71,12 @@ OhnoWang(;Hkin, β∞, mexp) = OhnoWang(Hkin, β∞, mexp)    # Keyword argument
     ```
     
 """
-function get_evolution(param::OhnoWang{Tp}, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor{dim,Tβ}) where{Tp,Tβ,dim}
-    β_vm = vonmises_dev(𝛃ᵢ)
+function get_evolution(param::OhnoWang{Tp}, ν::SecondOrderTensor, βᵢ::SecondOrderTensor{dim,Tβ}) where{Tp,Tβ,dim}
+    β_vm = vonmises_dev(βᵢ)
     if β_vm < param.β∞ * eps(promote_type(Tp,Tβ))
-        return param.Hkin * (2.0/3.0) * 𝛎 + 0*𝛃ᵢ
+        return param.Hkin * (2.0/3.0) * ν + 0*βᵢ
     end
-    mac_term = (macaulay(𝛎⊡𝛃ᵢ) /param.β∞)
+    mac_term = (macaulay(ν⊡βᵢ) /param.β∞)
     exp_term = (β_vm/param.β∞)^param.mexp 
-    return param.Hkin * ((2.0/3.0) * 𝛎 - 𝛃ᵢ * mac_term * exp_term / β_vm )
+    return param.Hkin * ((2.0/3.0) * ν - βᵢ * mac_term * exp_term / β_vm )
 end
