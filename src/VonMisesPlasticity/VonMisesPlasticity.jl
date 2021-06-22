@@ -79,7 +79,7 @@ element contain a hardening law of type ``AbstractIsotropicHardening`` and ``Abs
 
 The stress is calculated from the elastic strains, ``\\boldsymbol{\\epsilon}_\\mathrm{e}``, obtained via the 
 additive decomposition, ``\\boldsymbol{\\epsilon} = \\boldsymbol{\\epsilon}_\\mathrm{e} + \\boldsymbol{\\epsilon}_\\mathrm{p}``. 
-The elastic law, i.e. `` is specified by `m.elastic`
+The elastic law is specified by `m.elastic` and is evaluated by giving it the elastic strain. 
 
 Von Mises yield function:
 ```math
@@ -111,17 +111,6 @@ Kinematic hardening is formulated as
 ```
 where ``g_{\\mathrm{kin},i}(\\boldsymbol{\\nu}, \\boldsymbol{\\beta}_i)`` is specified by `m.kinematic[i]`
 and ``i\\in[1,N_\\mathrm{kin}]``. 
-
-# Algorithmic tangent stiffness computations
-σ(X(ϵ), ϵ): dσdϵ = ∂σ∂X dXdϵ + ∂σ∂ϵ
-R(X(ϵ), ϵ): dRdX=0=∂R∂X dXdϵ + ∂R∂ϵ
-dσdϵ = - ∂σ∂X [∂R∂X]^-1 ∂R∂ϵ + ∂σ∂ϵ
-
-For this specific case, 
-
-- ∂σ∂X is identity in upper left corner, zero the rest
-- ∂R∂ϵ is the elastic stiffness in upper left corner, zero the rest
-- ∂σ∂ϵ is zero (the entire stress σ is only a function of x.σ)
 
 # Keyword arguments
 - `cache`: Cache for the iterative solver, used by NLsolve.jl. It is strongly recommended to pre-allocate the cache for repeated calls to `material_response`. See [`get_cache`](@ref).

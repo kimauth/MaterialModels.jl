@@ -11,7 +11,7 @@ ArmstrongFrederick(;Hkin, β∞) = ArmstrongFrederick(Hkin, β∞)    # Keyword 
 """
     get_evolution(param::ArmstrongFrederick, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor)
 
-    Armstrong-Frederick kinematic hardening law
+    Armstrong-Frederick kinematic hardening law (doi: 10.1179/096034007X207589)
 
     ```math
     g_{\\mathrm{kin},i}(\\nu, \\beta_i) = Hkin (\\frac{2}{3}\\boldsymbol{\\nu} - \\frac{\\boldsymbol{\\beta}_i}{\\beta_\\infty})
@@ -33,6 +33,7 @@ Delobelle(;Hkin, β∞, δ) = Delobelle(Hkin, β∞, δ)    # Keyword argument c
     get_evolution(param::Delobelle, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor)
 
     Kinematic hardening law according to Delobelle, which combines the Armstrong-Frederick law with the Burlet-Cailletaud law
+    (doi: 10.1016/S0749-6419(95)00001-1)
 
     ```math
     g_{\\mathrm{kin},i}(\\nu, \\beta_i) = Hkin \\left[\\frac{2}{3}\\boldsymbol{\\nu} 
@@ -59,7 +60,7 @@ OhnoWang(;Hkin, β∞, mexp) = OhnoWang(Hkin, β∞, mexp)    # Keyword argument
 """ 
     get_evolution(param::OhnoWang{Tp}, 𝛎::SecondOrderTensor, 𝛃ᵢ::SecondOrderTensor{dim,Tβ}) where{Tp,Tβ,dim}
 
-    Kinematic hardening law according to Ohno-Wang
+    Kinematic hardening law according to Ohno-Wang (doi: 10.1016/0749-6419(93)90042-O)
 
     ```math
     g_{\\mathrm{kin},i}(\\nu, \\beta_i) = Hkin \\left[\\frac{2}{3}\\boldsymbol{\\nu} 
