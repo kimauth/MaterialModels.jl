@@ -134,9 +134,9 @@ end
     Hiso = 200.0; κ∞=10.0
     voce = Voce(Hiso=Hiso, κ∞=κ∞)
     κ = MaterialModels.get_hardening(voce, λ)
-    dκ = MaterialModels.get_hardening(voce, λ+dλ) - κ
-    @test isapprox(dκ/dλ, Hiso*(1 - κ/κ∞), rtol=1.e-3)
-
+    dκdλ = ForwardDiff.derivative(λarg->MaterialModels.get_hardening(voce, λarg), λ)
+    @test dκdλ ≈ Hiso*(1 - κ/κ∞)
+    
     # Swift hardening
     K=10.0
     λ0=1.e-3

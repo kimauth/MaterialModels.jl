@@ -3,6 +3,7 @@ using Test
 using Rotations
 using StaticArrays
 using JLD2
+using ForwardDiff
 
 include("test_utils.jl")
 include("test_linear_elastic.jl")
