@@ -1,5 +1,6 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+MaterialModels = "d7e62f90-dad9-4fee-a9a8-264218a34fd2"
 
 [compat]
 Documenter = "0.26"
