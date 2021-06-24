@@ -30,26 +30,12 @@
 end
 
 
-# function get_Plastic_loading()
-#     strain1 = range(0.0,  0.005, length=5)
-#     strain2 = range(0.005, 0.001, length=5)
-#     strain3 = range(0.001, 0.007, length=5)
-
-#     _C = [strain1..., strain2..., strain3...]
-#     ε = [SymmetricTensor{2,3}((x, x/10, 0.0, 0.0, 0.0, 0.0)) for x in _C]
-
-#     return ε
-# end  
-
-function get_Plastic_loading_increments()
+function get_Plastic_loading()
     strain1 = range(0.0,  0.005, length=5)
     strain2 = range(0.005, 0.001, length=5)
     strain3 = range(0.001, 0.007, length=5)
 
-    _C = vcat([strain1[i]-strain1[i-1] for i=2:length(strain1)],
-        [strain2[i]-strain2[i-1] for i=2:length(strain2)],
-        [strain3[i]-strain3[i-1] for i=2:length(strain3)])
-    # _C = [strain1..., strain2..., strain3...]
+    _C = [strain1[2:end]..., strain2[2:end]..., strain3[2:end]...]
     ε = [SymmetricTensor{2,3}((x, x/10, 0.0, 0.0, 0.0, 0.0)) for x in _C]
 
     return ε
@@ -58,7 +44,6 @@ end
 @testset "Plastic jld2" begin
     m = Plastic(E=200e3, ν=0.3, σ_y=200., H=50., r=0.5, κ_∞=13., α_∞=13.)
 
-    loading = get_Plastic_loading_increments()
+    loading = get_Plastic_loading()
     check_jld2(m, loading, "Plastic1")#, debug_print=true, OVERWRITE_JLD2=true)
 end
-

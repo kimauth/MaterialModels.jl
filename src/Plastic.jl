@@ -61,7 +61,7 @@ end
 # constitutive driver operates in 3D, so these can always be 3D
 # TODO: Should Residuals have a Type Parameter N for the number of scalar equations?
 struct ResidualsPlastic{T}
-    εᵖ::SymmetricTensor{2,3,T,6}
+    σ::SymmetricTensor{2,3,T,6}
     κ::T
     α::SymmetricTensor{2,3,T,6}
     μ::T
@@ -77,7 +77,7 @@ Tensors.get_base(::Type{Plastic}) = ResidualsPlastic # needed for frommandel
 function Tensors.tomandel!(v::Vector{T}, r::ResidualsPlastic{T}) where T
     M=6
     # TODO check vector length
-    tomandel!(view(v, 1:M), r.εᵖ)
+    tomandel!(view(v, 1:M), r.σ)
     v[M+1] = r.κ
     tomandel!(view(v, M+2:2M+1), r.α)
     v[2M+2] = r.μ
@@ -85,11 +85,11 @@ function Tensors.tomandel!(v::Vector{T}, r::ResidualsPlastic{T}) where T
 end
 
 function Tensors.frommandel(::Type{ResidualsPlastic}, v::Vector{T}) where T
-    εᵖ = frommandel(SymmetricTensor{2,3}, view(v, 1:6))
+    σ = frommandel(SymmetricTensor{2,3}, view(v, 1:6))
     κ = v[7]
     α = frommandel(SymmetricTensor{2,3}, view(v, 8:13))
     μ = v[14]
-    return ResidualsPlastic{T}(εᵖ, κ, α, μ)
+    return ResidualsPlastic{T}(σ, κ, α, μ)
 end
 
 """
@@ -126,29 +126,27 @@ function material_response(m::Plastic, ε::SymmetricTensor{2,3,T,6}, state::Plas
     Φ = sqrt(3/2)*norm(dev(σ_trial-state.α)) - m.σ_y - state.κ
 
     if Φ <= 0
-        return σ_trial, m.Eᵉ, PlasticState(σ_trial, state.κ, state.α, state.μ)
+        return σ_trial, m.Eᵉ, state
     else
         # set the current residual function that depends only on the variables
         # cache.f = (r_vector, x_vector) -> vector_residual!(((x)->residuals(x,m,state,Δε)), r_vector, x_vector, m)
         f(r_vector, x_vector) = vector_residual!(((x)->residuals(x,m,state,ε)), r_vector, x_vector, m)
         update_cache!(cache, f)
         # initial guess
-        x0 = ResidualsPlastic(state.εᵖ, state.κ, state.α, state.μ)
+        x0 = ResidualsPlastic(σ_trial, state.κ, state.α, state.μ)
         # convert initial guess to vector
         tomandel!(cache.x_f, x0)
         # solve for variables x
         nlsolve_options = get(options, :nlsolve_params, Dict{Symbol, Any}(:method=>:newton))
         haskey(nlsolve_options, :method) || merge!(nlsolve_options, Dict{Symbol, Any}(:method=>:newton)) # set newton if the user did not supply another method
         result = NLsolve.nlsolve(cache, cache.x_f; nlsolve_options...)
-        # result = NLsolve.newton(cache, cache.x_f, 0.0, 1e-8, 1000, false, false, false, LineSearches.Static(); linsolve = (x, A, b) -> copyto!(x, A\b))
-        # result = NLsolve.newton_(cache, cache.x_f, 0.0, 1e-8, 1000, false, false, false, LineSearches.Static(), (x, A, b) -> copyto!(x, A\b), NLsolve.NewtonCache(cache))
         if result.f_converged
-            x = frommandel(ResidualsPlastic, result.zero)
-            σ = m.Eᵉ ⊡ (ε - x.εᵖ)
+            x = frommandel(ResidualsPlastic, result.zero::Vector{T})
+            εᵖ = state.εᵖ + x.μ*(3/(2*sqrt(3/2)*norm(dev(x.σ-x.α)))*dev(x.σ-x.α))
             dRdx = cache.DF
             inv_J_σσ = frommandel(SymmetricTensor{4,3}, inv(dRdx))
             ∂σ∂ε = inv_J_σσ ⊡ m.Eᵉ
-            return σ, ∂σ∂ε, PlasticState(x.εᵖ, x.κ, x.α, x.μ)
+            return x.σ, ∂σ∂ε, PlasticState(εᵖ, x.κ, x.α, x.μ)
         else
             error("Material model not converged. Could not find material state.")
         end
@@ -156,10 +154,11 @@ function material_response(m::Plastic, ε::SymmetricTensor{2,3,T,6}, state::Plas
 end
 
 function residuals(vars::ResidualsPlastic, m::Plastic, material_state::PlasticState{3}, ε)
-    εᵖ = vars.εᵖ; κ = vars.κ; α = vars.α; μ = vars.μ
-    σ = m.Eᵉ ⊡ (ε - εᵖ)
+    σ = vars.σ; κ = vars.κ; α = vars.α; μ = vars.μ
+
+    σ_trial = m.Eᵉ ⊡ (ε - material_state.εᵖ)
     ν = 3/(2*sqrt(3/2)*norm(dev(σ-α)))*dev(σ-α)
-    Rσ = m.Eᵉ ⊡ (-εᵖ + material_state.εᵖ + μ * ν) # R_σ(εᵖ, α, μ)
+    Rσ = σ - σ_trial + m.Eᵉ ⊡ (μ*ν) # R_σ(εᵖ, α, μ)
     Rκ = κ - material_state.κ - μ*m.H_κ*(-1 +κ/m.κ_∞) # R_κ(κ, μ)
     Rα = α - material_state.α - μ*m.H_α * (-ν + 3/(2*m.α_∞)*dev(α)) # R_α(σ, α, μ)
     Rμ = sqrt(3/2)*norm(dev(σ-α)) - m.σ_y - κ
