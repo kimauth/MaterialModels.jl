@@ -2,7 +2,16 @@ include("IsotropicHardening.jl")
 include("KinematicHardening.jl")
 
 
-# Definition of material properties
+"""
+    VonMisesPlasticity(elastic, σ_y0, isotropic, kinematic)
+von Mises plasticity with modular elastic law, and multiple modular isotropic and kinematic
+hardening contributions. 
+# Arguments
+- `elastic::AbstractMaterial`: Elastic law, see e.g. [`LinearElastic`](@ref)
+- `σ_y0::Float64`: Initial yield limit
+- `isotropic::NTuple{Niso,AbstractIsotropicHardening}`: Isotropic hardening laws, see e.g. [`Voce`](@ref)
+- `kinematic::NTuple{Niso,AbstractKinematicHardening}`: Kinematic hardening laws, see e.g. [`ArmstrongFrederick`](@ref)
+"""
 struct VonMisesPlasticity{T,ElasticType,IsoType,KinType} <:AbstractMaterial
     elastic::ElasticType    # Elastic definition
     σ_y0::T                 # Initial yield limit
@@ -61,14 +70,14 @@ function get_cache(material::VonMisesPlasticity{T,ElType,IsoType,KinType}) where
 end
 
 """
-    material_response(m::VonMisesPlasticity, ϵ::SymmetricTensor{2,3}, state::VonMisesPlasticityState, Δt; <keyword arguments>)
+    material_response(m::VonMisesPlasticity, ϵ::SymmetricTensor{2,3}, old::VonMisesPlasticityState; kwargs...)
 
 Return the stress tensor, stress tangent, the new `MaterialState` and a boolean specifying if local iterations converged. 
 The total strain ε and previous material state `state` are given as input, Δt has no influence as the material is rate independent.
 
 By specifying different laws in `m.elastic`, `m.isotropic`, and `m.kinematic`, different models can be obtained, 
 within the general equations specified below. Note that `m.isotropic` and `m.kinematic` are of type Tuple, in which each
-element contain a hardening law of type ``AbstractIsotropicHardening`` and ``AbstractKinematicHardening``, respectively. 
+element contain a hardening law of type `AbstractIsotropicHardening` and `AbstractKinematicHardening`, respectively. 
 
 The stress is calculated from the elastic strains, ``\\boldsymbol{\\epsilon}_\\mathrm{e}``, obtained via the 
 additive decomposition, ``\\boldsymbol{\\epsilon} = \\boldsymbol{\\epsilon}_\\mathrm{e} + \\boldsymbol{\\epsilon}_\\mathrm{p}``. 
@@ -78,12 +87,12 @@ Von Mises yield function:
 ```math
 \\Phi = \\sqrt{\\frac{3}{2}} \\left| \\text{dev} \\left( \\boldsymbol{\\sigma} - \\boldsymbol{\\beta} \\right) \\right| - \\sigma_y - \\kappa
 ```
-where ``\\boldsymbol{\\beta} = \\sum_{i=1}^{N_\\mathrm{kin} \\boldsymbol{\\beta}_i`` is the total back-stress. 
+where ``\\boldsymbol{\\beta} = \\sum_{i=1}^{N_\\mathrm{kin}} \\boldsymbol{\\beta}_i`` is the total back-stress. 
 The evolution of ``\\boldsymbol{\\beta}_i`` is given by the kinematic hardening, specified below and using `m.kinematic`
 
 Associative plastic flow is used to obtain the plastic strains,
 ```math
-\\dot{\\epsilon}_{\\mathrm{p}} = \\dot{\\lambda} \\frac{\\partial \\Phi}{\\boldsymbol{\\sigma}}
+\\dot{\\epsilon}_{\\mathrm{p}} = \\dot{\\lambda} \\frac{\\partial \\Phi}{\\partial \\boldsymbol{\\sigma}}
 = \\dot{\\lambda} \\boldsymbol{\\nu}
 ```
 
@@ -100,7 +109,7 @@ where ``g_{\\mathrm{iso},i}(\\lambda)`` is specified by `m.isotropic[i]`
 
 Kinematic hardening is formulated as
 ```math
-\\boldsymbol{\\beta}_i = \\dot{\\lambda} g_{\\mathrm{kin},i}(\\nu, \\boldsymbol{\\beta}_i)
+\\dot{\\boldsymbol{\\beta}}_i = \\dot{\\lambda} g_{\\mathrm{kin},i}(\\nu, \\boldsymbol{\\beta}_i)
 ```
 where ``g_{\\mathrm{kin},i}(\\boldsymbol{\\nu}, \\boldsymbol{\\beta}_i)`` is specified by `m.kinematic[i]`
 and ``i\\in[1,N_\\mathrm{kin}]``. 

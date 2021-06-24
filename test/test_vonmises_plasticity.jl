@@ -109,7 +109,7 @@ get_evolution(af, db, ow, ν, β) = MaterialModels.get_evolution.((af, db, ow), 
     Hkin=10.e3; β∞=30.0
     af = ArmstrongFrederick(Hkin=Hkin, β∞=β∞)
     db = Delobelle(Hkin=Hkin, β∞=β∞, δ=0.5)
-    ow = OhnoWang(Hkin=Hkin, β∞=β∞, mexp=3.0)
+    ow = OhnoWang(Hkin=Hkin, β∞=β∞, m=3.0)
     σ_red_dev = dev(rand(SymmetricTensor{2,3}))
     ν = (3/2)*σ_red_dev/MaterialModels.vonmises(σ_red_dev)
     β = zero(SymmetricTensor{2,3})
