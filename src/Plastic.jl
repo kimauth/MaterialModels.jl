@@ -93,9 +93,9 @@ function Tensors.frommandel(::Type{ResidualsPlastic}, v::Vector{T}) where T
 end
 
 """
-    material_response(m::Plastic, Δε::SymmetricTensor{2,3,T,6}, state::PlasticState{3}; <keyword arguments>)
+    material_response(m::Plastic, ε::SymmetricTensor{2,3,T,6}, state::PlasticState{3}; <keyword arguments>)
 
-Return the stress tensor, stress tangent and the new `MaterialState` for the given strain step Δε and previous material state `state`.
+Return the stress tensor, stress tangent and the new `MaterialState` for the given strain ε and previous material state `state`.
 
 Plastic free energy:
 ```math
