@@ -5,7 +5,6 @@
 
     # initial state
     state = initial_material_state(m)
-    @test state.σ == zero(SymmetricTensor{2,3})
 
     # strain at yield point for uniaxial stress
     ε11_yield = m.σ_y / m.E
@@ -36,7 +35,7 @@ function get_Plastic_loading()
     strain2 = range(0.005, 0.001, length=5)
     strain3 = range(0.001, 0.007, length=5)
 
-    _C = [strain1..., strain2..., strain3...]
+    _C = [strain1[2:end]..., strain2[2:end]..., strain3[2:end]...]
     ε = [SymmetricTensor{2,3}((x, x/10, 0.0, 0.0, 0.0, 0.0)) for x in _C]
 
     return ε
@@ -48,4 +47,3 @@ end
     loading = get_Plastic_loading()
     check_jld2(m, loading, "Plastic1")#, debug_print=true, OVERWRITE_JLD2=true)
 end
-

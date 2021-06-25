@@ -39,7 +39,7 @@ end
 Plastic(;E, ν, σ_y, H, r, κ_∞, α_∞) = Plastic(E, ν, σ_y, H, r, κ_∞, α_∞)
 
 struct PlasticState{dim,T,M} <: AbstractMaterialState
-    σ::SymmetricTensor{2,dim,T,M}
+    εᵖ::SymmetricTensor{2,dim,T,M}
     κ::T
     α::SymmetricTensor{2,dim,T,M}
     μ::T
@@ -93,9 +93,9 @@ function Tensors.frommandel(::Type{ResidualsPlastic}, v::Vector{T}) where T
 end
 
 """
-    material_response(m::Plastic, Δε::SymmetricTensor{2,3,T,6}, state::PlasticState{3}; <keyword arguments>)
+    material_response(m::Plastic, ε::SymmetricTensor{2,3,T,6}, state::PlasticState{3}; <keyword arguments>)
 
-Return the stress tensor, stress tangent and the new `MaterialState` for the given strain step Δε and previous material state `state`.
+Return the stress tensor, stress tangent and the new `MaterialState` for the given strain ε and previous material state `state`.
 
 Plastic free energy:
 ```math
@@ -119,18 +119,18 @@ An associative flow rule and non-associative hardening rules are used. The evolu
 - `options::Dict{Symbol, Any}`: Solver options for the non-linear solver. Under the key `:nlsolve_params` keyword arguments for `nlsolve` can be handed over.
 See [NLsolve documentation](https://github.com/JuliaNLSolvers/NLsolve.jl#common-options). By default the Newton solver will be used.
 """
-function material_response(m::Plastic, Δε::SymmetricTensor{2,3,T,6}, state::PlasticState{3},
+function material_response(m::Plastic, ε::SymmetricTensor{2,3,T,6}, state::PlasticState{3},
     Δt=nothing; cache=get_cache(m), options::Dict{Symbol, Any} = Dict{Symbol, Any}()) where T
 
-    σ_trial = state.σ + m.Eᵉ ⊡ Δε
+    σ_trial = m.Eᵉ ⊡ (ε - state.εᵖ)
     Φ = sqrt(3/2)*norm(dev(σ_trial-state.α)) - m.σ_y - state.κ
 
     if Φ <= 0
-        return σ_trial, m.Eᵉ, PlasticState(σ_trial, state.κ, state.α, state.μ)
+        return σ_trial, m.Eᵉ, state
     else
         # set the current residual function that depends only on the variables
         # cache.f = (r_vector, x_vector) -> vector_residual!(((x)->residuals(x,m,state,Δε)), r_vector, x_vector, m)
-        f(r_vector, x_vector) = vector_residual!(((x)->residuals(x,m,state,Δε)), r_vector, x_vector, m)
+        f(r_vector, x_vector) = vector_residual!(((x)->residuals(x,m,state,ε)), r_vector, x_vector, m)
         update_cache!(cache, f)
         # initial guess
         x0 = ResidualsPlastic(σ_trial, state.κ, state.α, state.μ)
@@ -140,24 +140,25 @@ function material_response(m::Plastic, Δε::SymmetricTensor{2,3,T,6}, state::Pl
         nlsolve_options = get(options, :nlsolve_params, Dict{Symbol, Any}(:method=>:newton))
         haskey(nlsolve_options, :method) || merge!(nlsolve_options, Dict{Symbol, Any}(:method=>:newton)) # set newton if the user did not supply another method
         result = NLsolve.nlsolve(cache, cache.x_f; nlsolve_options...)
-        # result = NLsolve.newton(cache, cache.x_f, 0.0, 1e-8, 1000, false, false, false, LineSearches.Static(); linsolve = (x, A, b) -> copyto!(x, A\b))
-        # result = NLsolve.newton_(cache, cache.x_f, 0.0, 1e-8, 1000, false, false, false, LineSearches.Static(), (x, A, b) -> copyto!(x, A\b), NLsolve.NewtonCache(cache))
         if result.f_converged
-            x = frommandel(ResidualsPlastic, result.zero)
+            x = frommandel(ResidualsPlastic, result.zero::Vector{T})
+            εᵖ = state.εᵖ + x.μ*(3/(2*sqrt(3/2)*norm(dev(x.σ-x.α)))*dev(x.σ-x.α))
             dRdx = cache.DF
             inv_J_σσ = frommandel(SymmetricTensor{4,3}, inv(dRdx))
             ∂σ∂ε = inv_J_σσ ⊡ m.Eᵉ
-            return x.σ, ∂σ∂ε, PlasticState(x.σ, x.κ, x.α, x.μ)
+            return x.σ, ∂σ∂ε, PlasticState(εᵖ, x.κ, x.α, x.μ)
         else
             error("Material model not converged. Could not find material state.")
         end
     end
 end
 
-function residuals(vars::ResidualsPlastic, m::Plastic, material_state::PlasticState{3}, Δε)
+function residuals(vars::ResidualsPlastic, m::Plastic, material_state::PlasticState{3}, ε)
     σ = vars.σ; κ = vars.κ; α = vars.α; μ = vars.μ
+
+    σ_trial = m.Eᵉ ⊡ (ε - material_state.εᵖ)
     ν = 3/(2*sqrt(3/2)*norm(dev(σ-α)))*dev(σ-α)
-    Rσ = σ - material_state.σ - m.Eᵉ ⊡ Δε + μ * m.Eᵉ ⊡ ν # R_σ(σ, α, μ)
+    Rσ = σ - σ_trial + m.Eᵉ ⊡ (μ*ν) # R_σ(εᵖ, α, μ)
     Rκ = κ - material_state.κ - μ*m.H_κ*(-1 +κ/m.κ_∞) # R_κ(κ, μ)
     Rα = α - material_state.α - μ*m.H_α * (-ν + 3/(2*m.α_∞)*dev(α)) # R_α(σ, α, μ)
     Rμ = sqrt(3/2)*norm(dev(σ-α)) - m.σ_y - κ
