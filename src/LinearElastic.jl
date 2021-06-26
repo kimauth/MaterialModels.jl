@@ -41,9 +41,11 @@ get_stress_type(::LinearElasticState) = SymmetricTensor{2,3,Float64,6}
 # (we could specialize for lower dimensions if needed for performance)
 """
     material_response(m::LinearElastic, ε::SymmetricTensor{2,3})
+
 Return the stress tensor and the stress tangent for the given strain ε such that
+
 ```math
-\\boldsymbol{\\sigma} = \\mathbf{E}^\\text{e} : \\Delta \\boldsymbol{\\varepsilon} .
+\\boldsymbol{\\sigma} = \\mathbf{E}^\\text{e} : \\boldsymbol{\\varepsilon} .
 ```
 No `MaterialState` is needed for the stress computation, thus if a state is handed over to `material_response`, the same state is returned.
 """
