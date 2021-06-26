@@ -1,5 +1,7 @@
+
 """
-    LinearElastic(E, ν)
+LinearElastic(E, ν)
+
 Isotropic linear elasticity.
 # Arguments
 - `E::Float64`: Young's modulus
