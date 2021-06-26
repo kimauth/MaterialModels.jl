@@ -18,7 +18,7 @@
 #     return start + 1
 # end
 
-function vector_residual!(R::Function, r_vector::Vector{T}, x_vector::Vector{T}, m) where T
+function vector_residual!(R::Function, r_vector::AbstractVector{T}, x_vector::AbstractVector{T}, m) where T
     # construct residuals with type T
     x_tensor = frommandel(Tensors.get_base(typeof(m)), x_vector)
     r_tensor = R(x_tensor)
