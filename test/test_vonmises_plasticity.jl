@@ -1,6 +1,4 @@
-# Functions required as Plastic use the strain increment
-get_ramp_value(::Plastic, val_init, val_max, i, num_steps) = (val_max-val_init)/num_steps
-get_ramp_value(::VonMisesPlasticity, val_init, val_max, i, num_steps) = val_init + (val_max-val_init)*i/num_steps
+get_ramp_value(val_init, val_max, i, num_steps) = val_init + (val_max-val_init)*i/num_steps
 
 function uniaxial_loading(m, ϵ11_init, ϵ11_max, num_steps, t_max, options=Dict{Symbol, Any}())
     state = initial_material_state(m)
@@ -9,7 +7,7 @@ function uniaxial_loading(m, ϵ11_init, ϵ11_max, num_steps, t_max, options=Dict
     ϵ = SymmetricTensor{2,1}((ϵ11_init,))
     σ, dσdϵ, state = material_response(dim, m, ϵ, state, t_max/num_steps; cache=cache, options=options)
     for i=1:num_steps
-        ϵ = SymmetricTensor{2,1}((get_ramp_value(m, ϵ11_init, ϵ11_max, i, num_steps),))
+        ϵ = SymmetricTensor{2,1}((get_ramp_value(ϵ11_init, ϵ11_max, i, num_steps),))
         σ, dσdϵ, state = material_response(dim, m, ϵ, state, t_max/num_steps; cache=cache, options=options)
     end
     return σ, dσdϵ, state
@@ -21,7 +19,7 @@ function shear_loading(m, ϵ21_init, ϵ21_max, num_steps, t_max, options=Dict{Sy
     ϵ = SymmetricTensor{2,3}((i,j)-> i==2 && j==1 ? ϵ21_init : zero(typeof(ϵ21_init)))
     σ, dσdϵ, state = material_response(m, ϵ, state, t_max/num_steps; cache=cache, options=options)
     for k=1:num_steps
-        ϵ = SymmetricTensor{2,3}((i,j)-> i==2 && j==1 ? get_ramp_value(m, ϵ21_init, ϵ21_max, k, num_steps) : zero(typeof(ϵ21_max)))
+        ϵ = SymmetricTensor{2,3}((i,j)-> i==2 && j==1 ? get_ramp_value(ϵ21_init, ϵ21_max, k, num_steps) : zero(typeof(ϵ21_max)))
         σ, dσdϵ, state = material_response(m, ϵ, state, t_max/num_steps; cache=cache, options=options)
     end
     return σ, dσdϵ, state
