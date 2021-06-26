@@ -10,7 +10,7 @@
     @test MaterialModels.vonmises(σ) ≈ MaterialModels.vonmises_dev(dev(σ))    # Check that the deviatoric version works as intended
 
     x = 1.0 + rand()
-    @test MaterialModels.macaulay(-x) ≈ zero(typeof(x))
+    @test MaterialModels.macaulay(-x) ≈ zero(x)
     @test MaterialModels.macaulay(x) ≈ x
 
 end
