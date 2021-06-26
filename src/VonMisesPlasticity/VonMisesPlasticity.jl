@@ -125,7 +125,7 @@ m = VonMisesPlasticity(elastic=LinearElastic(E=210.e3, ν=0.3),
                        σ_y0=100.0,
                        isotropic=(Voce(Hiso=-100.e3, κ∞=-100.0),Voce(Hiso=10.e3, κ∞=200.0)),
                        kinematic=(ArmstrongFrederick(Hkin=200.e3, β∞=200.0),
-                                  OhnoWang(Hkin=1000.e3, β∞=200.0, mexp=3.0))
+                                  OhnoWang(Hkin=1000.e3, β∞=200.0, m=3.0))
 ```
 
 """
@@ -194,7 +194,3 @@ end
 function calculate_plastic_strain(old::VonMisesPlasticityState, ν, Δλ)
     return old.ϵₚ + Δλ*ν
 end
-
-# This function belongs in LinearElastic.jl, but to avoid conflict with ka/use_full_strain
-# it is kept here until that branch is merged with main.
-calculate_sigma(m::LinearElastic, ε) =  m.Eᵉ ⊡ ε

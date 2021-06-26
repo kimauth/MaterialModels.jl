@@ -50,6 +50,8 @@ Return the stress tensor and the stress tangent for the given strain ε such tha
 No `MaterialState` is needed for the stress computation, thus if a state is handed over to `material_response`, the same state is returned.
 """
 function material_response(m::LinearElastic, ε::SymmetricTensor{2,3}, state::LinearElasticState=LinearElasticState(), Δt=nothing; cache=nothing, options=nothing)
-    σ = m.Eᵉ ⊡ ε
+    σ = calculate_sigma(m, ε)
     return σ, m.Eᵉ, state
 end
+
+calculate_sigma(m::LinearElastic, ε) =  m.Eᵉ ⊡ ε
