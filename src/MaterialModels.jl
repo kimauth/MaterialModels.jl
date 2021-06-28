@@ -72,6 +72,10 @@ include("CrystalViscoPlastic/slipsystems.jl")
 include("CrystalViscoPlastic/CrystalViscoPlastic.jl")
 include("CrystalViscoPlastic/CrystalViscoPlasticRed.jl")
 
+include("FiniteStrain/neohook.jl")
+include("FiniteStrain/yeoh.jl")
+include("FiniteStrain/stvenant.jl")
+
 include("nonlinear_solver.jl")
 include("wrappers.jl")
 
@@ -83,4 +87,5 @@ export LinearElastic, Plastic
 export LinearElasticState, PlasticState
 export OneD, UniaxialStrain, UniaxialStress, PlaneStrain, PlaneStress
 
+export NeoHook, Yeoh, StVenant
 end

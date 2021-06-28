@@ -1,7 +1,10 @@
 """
-    NeoHook(; λ, μ)
+    NeoHook(; E, ν)
 
-Hyper elastic material, Neo-Hook
+Hyperelastic material
+#Arguments
+- `λ::Float64`: Lamé parameter
+- `μ::Float64`: Lamé parameter (shear modulus)
 """
 
 struct NeoHook <: AbstractMaterial
@@ -16,9 +19,7 @@ function initial_material_state(::NeoHook)
     return NeoHookState()
 end
 
-function NeoHook(; E::T, ν::T) where T
-    λ = (E*ν) / ((1+ν) * (1 - ν))
-    μ = E / (2(1+ν))
+function NeoHook(; λ::T, μ::T) where T
 
     return NeoHook(λ, μ)
 end
@@ -29,7 +30,8 @@ function ψ(mp::NeoHook, C::SymmetricTensor{2,3})
     return mp.μ/2 * (I-3) - mp.μ*log(J) + mp.λ/2 * log(J)^2
 end
 
-function material_response(mp::NeoHook, C::SymmetricTensor{2,3})
+function material_response(mp::NeoHook, C::SymmetricTensor{2,3}, state::NeoHookState = NeoHookState(), 
+                           Δt=nothing; cache=nothing, options=nothing)
     ∂²Ψ∂C², ∂Ψ∂C, _ =  hessian((C) -> ψ(mp, C), C, :all)
     S = 2.0 * ∂Ψ∂C
     ∂S∂C = 2.0 * ∂²Ψ∂C²

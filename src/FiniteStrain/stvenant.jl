@@ -1,7 +1,10 @@
 """
     StVenant(; E, ν)
 
-Hyper elastic material, StVenant
+Hyperelastic material
+#Arguments
+- `λ::Float64`: Lamé parameter
+- `μ::Float64`: Lamé parameter (shear modulus)
 """
 
 struct StVenant <: AbstractMaterial
@@ -16,21 +19,20 @@ function initial_material_state(::StVenant)
     return StVenantState()
 end
 
-function StVenant(; E::T, ν::T) where T
-    λ = (E*ν) / ((1+ν) * (1 - ν))
-    μ = E / (2(1+ν))
-
+function StVenant(; λ::T, μ::T) where T
     return StVenant(λ, μ)
 end
 
-function ψ(mp::StVenant, C::SymmetricTensor{2,3})
+function _SPK(mp::StVenant, C::SymmetricTensor{2,3})
     I = one(C)
-    return 0.5*λ*(tr(C) - 3)*I + mp.μ*(C - I)
+    return 0.5*mp.λ*(tr(C) - 3)*I + mp.μ*(C - I)
 end
 
-function material_response(mp::StVenant, C::SymmetricTensor{2,3})
-    ∂²Ψ∂C², ∂Ψ∂C, _ =  hessian((C) -> ψ(mp, C), C, :all)
-    S = 2.0 * ∂Ψ∂C
-    ∂S∂C = 2.0 * ∂²Ψ∂C²
+function material_response(mp::StVenant, C::SymmetricTensor{2,3}, state::StVenantState = StVenantState(), 
+                           Δt=nothing; cache=nothing, options=nothing)
+                           
+    ∂S∂C, S =  gradient((C) -> _SPK(mp, C), C, :all)
     return S, ∂S∂C, StVenantState()
 end
+
+
