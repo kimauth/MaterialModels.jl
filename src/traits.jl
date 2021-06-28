@@ -1,3 +1,4 @@
+export dSdC, dSdE, dPᵀdF
 
 struct GreenLagrange <: StrainMeasure end
 struct RightCauchyGreen <: StrainMeasure end
@@ -6,66 +7,56 @@ struct VelocityGradient <: StrainMeasure end
 
 strainmeasure(::Type{<:AbstractMaterial}) = error("Strain measure for material $m not defined ")
 
+abstract type AbstractTangent end
+struct dSdC <: AbstractTangent end
+struct dSdE <: AbstractTangent end
+struct dPᵀdF <: AbstractTangent end
+
+#Here we must associate a strain meassure with an output tangent
+# These default makes sence: 
+default_tangent(::GreenLagrange) = dSdE()
+default_tangent(::RightCauchyGreen) = dSdC()
+default_tangent(::DeformationGradient) = dPᵀdF()
+
 """
-    material_response_S_dSdE(m::AbstractMaterial, F::Tensor{2}, state::AbstractMaterialState, Δt::Float64; cache, options)
+    compute_strain(F::Tensor{2}, stype::StrainMeasure)
 
-Function for automatically converting the stress and tangent from any material model to S and dSdE 
+Compute strain meassure defined by `stype`, using the deformation gradient `F`
 """
-function material_response_S_dSdE(m::M, F::Tensor{2}, state::AbstractMaterialState, Δt::Float64; cache, options) where M<:AbstractMaterial 
-    material_response_S_dSdE(strainmeasure(M), m, F, state, Δt, cahce=cache, options=options)
-end
+compute_strain(F::Tensor{2}, ::RightCauchyGreen) = tdot(F)
+compute_strain(F::Tensor{2}, ::GreenLagrange) = symmetric(1/2 * (F' ⋅ F - one(F)))
+compute_strain(F::Tensor{2}, ::DeformationGradient) = F
 
-#
-# RightCauchyGreen
-function material_response_S_dSdE(::RightCauchyGreen, m::AbstractMaterial, F::Tensor{2}, state::AbstractMaterialState, Δt::Float64; cache, options)
-    C = tdot(F)
-    S, dSdC, state = material_response(m, C, stat, Δt, cahce=cache, options=options)
-    return S, 2dSdC, state
-end
+"""
+    transform_tangent(stress, tangent, F::Tensor{2}, from::AbstractTangent, to::AbstractTangent)
 
-#
-# GreenLagrange
-function material_response_S_dSdE(::GreenLagrange, m::AbstractMaterial, F::Tensor{2}, state::AbstractMaterialState, Δt::Float64; cache, options)
-    E = symmetric(1/2 * (F' ⋅ F - one(F)))
-    S, dSdE, state = material_response(m, E, state, Δt, cahce=cache, options=options)
-    return S, dSdE, state
-end
-
-#
-# DeformationGradient
-function material_response_S_dSdE(::DeformationGradient, m::AbstractMaterial, F::Tensor{2}, state::AbstractMaterialState, Δt::Float64; cache, options)
-    Pᵀ, dPᵀdF, state = material_response(m, F, state, Δt, cahce=cache, options=options)
+Transform the stress and tangent
+"""
+transform_tangent(S, dSdC, F::Tensor{2}, from::dSdC, to::dSdE) = S, 2dSdC
+transform_tangent(S, dSdC, F::Tensor{2}, from::dSdC, to::dPᵀdF) = S⋅F', otimesu(F,I) ⊡ dSdC ⊡ otimesu(F',I) + otimesu(S,I)
+transform_tangent(S, dSdC, F::Tensor{2}, from::dPᵀdF, to::dSdC) = begin
     S = Pᵀ ⋅ inv(F')
-    dSdE = 2 * inv( otimesu(F,I) ) ⊡ (dPᵀdF - otimesu(S,I)) ⊡ inv( otimesu(F',I) )
-    return S, 2dSdC, state 
+    dSdC = 2 * inv( otimesu(F,I) ) ⊡ (dPᵀdF - otimesu(S,I)) ⊡ inv( otimesu(F',I) )
+    return S, dSdC
 end
+#...
 
 """
-    material_response_Pᵀ_dPᵀdF(m::AbstractMaterial, F::Tensor{2}, state::AbstractMaterialState, Δt::Float64; cache, options)
+    material_response(output_tangent::AbstractTangent, m::AbstractMaterial, F::Tensor{2}, state::AbstractMaterialState, Δt::Float64; cache, options)
 
-Function for automatically converting the stress and tangent from any material model to Pᵀ and dPᵀdF 
+Function for automatically converting the output stress and tangent from any material, to any 
+other stress/tangent defined by `output_tangent` (dSdC, dPᵀdF etc.) 
 """
-function material_response_Pᵀ_dPᵀdF(m::M, F::Tensor{2}, state::AbstractMaterialState, Δt::Float64; cache, options) where M<:AbstractMaterial 
-    material_response_Pᵀ_dPᵀdF(strainmeasure(M), m, F, state, Δt, cache, options)
+
+function material_response(output_tangent::AbstractTangent, m::AbstractMaterial, F::Tensor{2}, state::AbstractMaterialState, Δt::Float64 = 0.0; cache=nothing, options=nothing)
+    return material_response(output_tangent, strainmeasure(m), m, F, state, Δt, cahce=cache, options=options)
 end
 
-#
-# DeformationGradient
-function material_response_Pᵀ_dPᵀdF(::DeformationGradient, m::AbstractMaterial, F::Tensor{2}, state::AbstractMaterialState, Δt::Float64; cache, options)
-    Pᵀ, dPᵀdF, state = material_response(m, F, state, Δt, cahce=cache, options=options)
-    return Pᵀ, dPᵀdF, state
-end
+function material_response(output_tangent::AbstractTangent, straintype::StrainMeasure, m::AbstractMaterial, F::Tensor{2}, state::AbstractMaterialState, Δt::Float64; cache, options)
+    
+    strain = compute_strain(F, straintype)
+    stress, strain, newstate = material_response(m, strain, state, Δt, cahce=cache, options=options)
+    out_stress, out_tangent = transform_tangent(stress, strain, F, default_tangent(straintype), output_tangent)
 
-#
-# RightCauchyGreen
-function material_response_Pᵀ_dPᵀdF(::RightCauchyGreen, m::AbstractMaterial, F::Tensor{2}, state::AbstractMaterialState, Δt::Float64; cache, options)
-    C = tdot(F)
-    S, dSdC, state = material_response(m, C, state, Δt, cahce=cache, options=options)
-    dPᵀdF =  otimesu(F,I) ⊡ dSdE ⊡ otimesu(F',I) + otimesu(S,I)
-    Pᵀ = S⋅F'
-    return Pᵀ, dPᵀdF, state
+    return out_stress, out_tangent, newstate
 end
-
-#
-# GreenLagrange
-# ...and so on
