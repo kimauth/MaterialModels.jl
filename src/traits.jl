@@ -1,11 +1,10 @@
-export dSdC, dSdE, dPᵀdF
 
 struct GreenLagrange <: StrainMeasure end
 struct RightCauchyGreen <: StrainMeasure end
 struct DeformationGradient <: StrainMeasure end
 struct VelocityGradient <: StrainMeasure end
 
-strainmeasure(::Type{<:AbstractMaterial}) = error("Strain measure for material $m not defined ")
+strainmeasure(m::AbstractMaterial) = error("Strain measure for material $m not defined ")
 
 abstract type AbstractTangent end
 struct dSdC <: AbstractTangent end
@@ -33,7 +32,12 @@ compute_strain(F::Tensor{2}, ::DeformationGradient) = F
 Transform the stress and tangent
 """
 transform_tangent(S, dSdC, F::Tensor{2}, from::dSdC, to::dSdE) = S, 2dSdC
-transform_tangent(S, dSdC, F::Tensor{2}, from::dSdC, to::dPᵀdF) = S⋅F', otimesu(F,I) ⊡ dSdC ⊡ otimesu(F',I) + otimesu(S,I)
+transform_tangent(S, dSdC, F::Tensor{2,3,T}, from::dSdC, to::dPᵀdF) where T = begin 
+    I = one(SymmetricTensor{2,3,T})
+    Pᵀ = S⋅F'
+    dPᵀdF = otimesu(F,I) ⊡ dSdC ⊡ otimesu(F',I) + otimesu(S,I)
+    return Pᵀ, dPᵀdF
+end
 transform_tangent(S, dSdC, F::Tensor{2}, from::dPᵀdF, to::dSdC) = begin
     S = Pᵀ ⋅ inv(F')
     dSdC = 2 * inv( otimesu(F,I) ) ⊡ (dPᵀdF - otimesu(S,I)) ⊡ inv( otimesu(F',I) )
