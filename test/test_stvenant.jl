@@ -10,4 +10,5 @@ end
 
     loading = get_StVenant_loading()
     check_jld2(m, loading, "StVenant")#, debug_print=false, OVERWRITE_JLD2=true)
+    check_tangents_AD(m,loading)
 end
