@@ -49,13 +49,13 @@ other stress/tangent defined by `output_tangent` (dSdC, dPᵀdF etc.)
 """
 
 function material_response(output_tangent::AbstractTangent, m::AbstractMaterial, F::Tensor{2}, state::AbstractMaterialState, Δt::Float64 = 0.0; cache=nothing, options=nothing)
-    return material_response(output_tangent, strainmeasure(m), m, F, state, Δt, cahce=cache, options=options)
+    return material_response(output_tangent, strainmeasure(m), m, F, state, Δt, cache=cache, options=options)
 end
 
 function material_response(output_tangent::AbstractTangent, straintype::StrainMeasure, m::AbstractMaterial, F::Tensor{2}, state::AbstractMaterialState, Δt::Float64; cache, options)
     
     strain = compute_strain(F, straintype)
-    stress, strain, newstate = material_response(m, strain, state, Δt, cahce=cache, options=options)
+    stress, strain, newstate = material_response(m, strain, state, Δt, cache=cache, options=options)
     out_stress, out_tangent = transform_tangent(stress, strain, F, default_tangent(straintype), output_tangent)
 
     return out_stress, out_tangent, newstate
