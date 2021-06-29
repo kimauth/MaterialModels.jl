@@ -12,6 +12,8 @@ struct NeoHook <: AbstractMaterial
     μ::Float64
 end
 
+strainmeasure(::NeoHook) = RightCauchyGreen()
+
 struct NeoHookState <: AbstractMaterialState
 end
 

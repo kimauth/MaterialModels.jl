@@ -15,6 +15,8 @@ struct Yeoh <: AbstractMaterial
     c₃::Float64
 end
 
+strainmeasure(::Yeoh) = RightCauchyGreen()
+
 struct YeohState <: AbstractMaterialState
 end
 
