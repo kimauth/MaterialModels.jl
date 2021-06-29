@@ -97,4 +97,5 @@ export LinearElasticState, PlasticState
 export OneD, UniaxialStrain, UniaxialStress, PlaneStrain, PlaneStress
 
 export NeoHook, Yeoh, StVenant
+export dSdC, dSdE, dPᵀdF
 end
