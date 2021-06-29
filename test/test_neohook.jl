@@ -11,4 +11,5 @@ end
 
     loading = get_NeoHook_loading()
     check_jld2(m, loading, "NeoHook")#, debug_print=false, OVERWRITE_JLD2=true)
+    check_tangents_AD(m,loading)
 end
