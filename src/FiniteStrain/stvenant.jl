@@ -12,6 +12,8 @@ struct StVenant <: AbstractMaterial
     μ::Float64
 end
 
+strainmeasure(::StVenant) = RightCauchyGreen()
+
 struct StVenantState <: AbstractMaterialState
 end
 
