@@ -7,7 +7,7 @@ makedocs(
         "Home" => "index.md",
         "Interface" => "interface.md",
         "Materials" => [
-            "materials/LinearElastic.md"
+            "materials/LinearElastic.md",
             "materials/Plastic.md"
         ]
     ]
