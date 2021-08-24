@@ -1,8 +1,20 @@
 using Documenter, MaterialModels
 
-makedocs(sitename="MaterialModels.jl",  format = Documenter.HTML(prettyurls = false))
+makedocs(
+    sitename="MaterialModels.jl",  
+    format = Documenter.HTML(prettyurls = false),
+    pages = Any[
+        "Home" => "index.md",
+        "Interface" => "interface.md",
+        "Materials" => [
+            "materials/LinearElastic.md"
+            "materials/Plastic.md"
+        ]
+    ]
+)
 
 deploydocs(
     repo = "github.com/kimauth/MaterialModels.jl.git",
     devbranch = "main",
+    push_preview=true,
 )
