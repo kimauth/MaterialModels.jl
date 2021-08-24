@@ -1,15 +1,23 @@
 export MatHyperElasticPlastic, MatHyperElasticPlasticState
 
 """
-    MatHyperElasticPlastic <: AbstractMaterial
+    MatHyperElasticPlastic(elastic_material, σ_y, H)
 
-Hyper elastic plastic material for large deformations
+Large strain plasticity model with kinematic hardening.
+
+# Arguments
+- `elastic_material::AbstractMaterial`: Hyperelastic material, for exampel NeoHook
+- `σ_y:` yield limit
+- `H:` hardening modulus
+
+# Reference
+J.C. Simo, 1998, Numerical analysis and simulation of plasticity 
 """
 struct MatHyperElasticPlastic{M <: AbstractMaterial} <: AbstractMaterial
-    density::Float64
     elastic_material::M #Elastic material, Yeoh or Neo-hook
-    τ₀::Float64		    #Yield stress
+    σ_y::Float64		#Yield stress
     H::Float64		    #Hardening
+    density::Float64
 end
 
 struct MatHyperElasticPlasticState <: AbstractMaterialState
@@ -27,20 +35,20 @@ end
 # Constructors
 # # # # # # #
 
-function init_material_state(::MatHyperElasticPlastic)
+function initial_material_state(::MatHyperElasticPlastic)
     Fᵖ = one(Tensor{2,3,Float64})
     ν = zero(Tensor{2,3,Float64})
     return MatHyperElasticPlasticState(0.0, Fᵖ, ν)
 end
 
 function MatHyperElasticPlastic(; 
-    elastic_material::HyperElasticMaterial,
-    τ₀  ::T,
+    elastic_material::AbstractMaterial,
+    σ_y  ::T,
     H   ::T,
     density ::T = NaN, 
     ) where T
 
-    return MatHyperElasticPlastic(density, elastic_material, τ₀, H)
+    return MatHyperElasticPlastic(elastic_material, σ_y, H, density)
 end
 
 # # # # # # #
@@ -48,7 +56,7 @@ end
 # # # # # # #
 
 function _compute_2nd_PK(mp::MatHyperElasticPlastic, C::SymmetricTensor{2,dim,T}, state::MatHyperElasticPlasticState, compute_dissipation::Bool) where {dim,T}
-    emat, τ₀, H = (mp.elastic_material, mp.τ₀, mp.H)
+    emat, σ_y, H = (mp.elastic_material, mp.σ_y, mp.H)
     
     I = one(C)
     Iᵈᵉᵛ = otimesu(I,I) - 1/3*otimes(I,I)
@@ -59,7 +67,7 @@ function _compute_2nd_PK(mp::MatHyperElasticPlastic, C::SymmetricTensor{2,dim,T}
     
     dγ = 0.0
     
-    phi, Mᵈᵉᵛ, Cᵉ, S̃, ∂S̃∂Cₑ = hyper_yield_function(C, state.Fᵖ, state.ϵᵖ, emat, τ₀, H)
+    phi, Mᵈᵉᵛ, Cᵉ, S̃, ∂S̃∂Cₑ = _hyper_yield_function(C, state.Fᵖ, state.ϵᵖ, emat, σ_y, H)
     dFᵖdC = zero(Tensor{4,dim,T})
     dΔγdC = zero(Tensor{2,dim,T})
     dgdC = zero(Tensor{2,dim,T})
@@ -77,11 +85,11 @@ function _compute_2nd_PK(mp::MatHyperElasticPlastic, C::SymmetricTensor{2,dim,T}
             Fᵖ = state.Fᵖ - dγ*state.Fᵖ⋅state.ν
             ϵᵖ = state.ϵᵖ + dγ
 
-            R, Mᵈᵉᵛ, Cₑ, S̃, ∂S̃∂Cₑ = _hyper_yield_function(C, Fᵖ, ϵᵖ, emat, τ₀, H) 
+            R, Mᵈᵉᵛ, Cₑ, S̃, ∂S̃∂Cₑ = _hyper_yield_function(C, Fᵖ, ϵᵖ, emat, σ_y, H) 
             
             #Numerical diff
             #h = 1e-6
-            #J = (yield_function(C, state.Fᵖ - (dγ+h)*state.Fᵖ⋅state.ν, state.ϵᵖ + (dγ+h), μ, λ, τ₀, H)[1] - yield_function(C, state.Fᵖ - dγ*state.Fᵖ⋅state.ν, state.ϵᵖ + dγ, μ, λ, τ₀, H)[1]) / h
+            #J = (yield_function(C, state.Fᵖ - (dγ+h)*state.Fᵖ⋅state.ν, state.ϵᵖ + (dγ+h), μ, λ, σ_y, H)[1] - yield_function(C, state.Fᵖ - dγ*state.Fᵖ⋅state.ν, state.ϵᵖ + dγ, μ, λ, σ_y, H)[1]) / h
 
             ∂ϕ∂M = sqrt(3/2) * (Mᵈᵉᵛ/norm(Mᵈᵉᵛ)) #⊡ Iᵈᵉᵛ #  state.ν#
             ∂M∂Cₑ = otimesu(I, S̃)
@@ -115,7 +123,6 @@ function _compute_2nd_PK(mp::MatHyperElasticPlastic, C::SymmetricTensor{2,dim,T}
 
     
     ν = norm(Mᵈᵉᵛ)==0.0 ? zero(Mᵈᵉᵛ) : sqrt(3/2)*Mᵈᵉᵛ/(norm(Mᵈᵉᵛ))
-
     S = (Fᵖ ⋅ S̃ ⋅ transpose(Fᵖ))
 
     ∂S∂Fᵖ = otimesu(I, (Fᵖ ⋅ S̃)) + otimesl((Fᵖ ⋅ S̃), I)
@@ -125,7 +132,7 @@ function _compute_2nd_PK(mp::MatHyperElasticPlastic, C::SymmetricTensor{2,dim,T}
     dCₑdC = ∂Cₑ∂C + ∂Cₑ∂Fᵖ ⊡ dFᵖdC
     dSdC = ∂S∂Fᵖ ⊡ dFᵖdC + ∂S∂S̃ ⊡ ∂S̃∂Cₑ ⊡ dCₑdC
 
-    g = 0.0, 
+    g = 0.0 
     dgdC = zero(SymmetricTensor{2,3,T,6})
     if compute_dissipation
         if phi > 0.0
@@ -137,16 +144,16 @@ function _compute_2nd_PK(mp::MatHyperElasticPlastic, C::SymmetricTensor{2,dim,T}
     return symmetric(S), dSdC, ϵᵖ, ν, Fᵖ, g, dgdC
 end
 
-function _hyper_yield_function(C::SymmetricTensor, Fᵖ::Tensor, ϵᵖ::T, emat::MatNeoHook, τ₀::Float64, H::Float64) where T
+function _hyper_yield_function(C::SymmetricTensor, Fᵖ::Tensor, ϵᵖ::T, emat::AbstractMaterial, σ_y::Float64, H::Float64) where T
     Cᵉ = symmetric(transpose(Fᵖ)⋅C⋅Fᵖ)
 
-    S̃, ∂S̃∂Cₑ = _constitutive_driver(emat, Cᵉ)
+    S̃, ∂S̃∂Cₑ = material_response(emat, Cᵉ)
 
     #Mandel stress
     Mbar = Cᵉ⋅S̃
     Mᵈᵉᵛ = dev(Mbar)
 
-    yield_func = sqrt(3/2)*norm(Mᵈᵉᵛ) - (τ₀ + H*ϵᵖ)
+    yield_func = sqrt(3/2)*norm(Mᵈᵉᵛ) - (σ_y + H*ϵᵖ)
 
     return yield_func, Mᵈᵉᵛ, Cᵉ, S̃, ∂S̃∂Cₑ
 end
@@ -169,17 +176,52 @@ function _compute_dissipation(M, ν, Δγ, dCₑdC, ∂S̃∂Cₑ, dΔγdC, ∂M
     return g, dgdC
 end
 
-function material_response(mp::MatHyperElasticPlastic, C::SymmetricTensor{2,3,T,6}, state::MatHyperElasticPlasticState, Δt=0.0
-    ; nothing, options::Dict{Symbol, Any} = Dict{Symbol, Any}()) 
+"""
+    material_response(mp::MatHyperElasticPlastic, C::SymmetricTensor{2,3,T,6}, state::MatHyperElasticPlasticState, Δt=0.0;  <keyword arguments>)
+
+The material model assumes a multiplicative split of the deformation gradient
+
+```math
+\\boldsymbol{F} = \\boldsymbol{F}_e \\boldsymbol{F}_p
+```
+The yield function is of von Mises type is formulated in terms of the Mandel stress, \$\\boldsymbol{M}\$
+
+```math
+\\phi = \\sqrt{\\frac{3}{2}} \\left| \\boldsymbol{M}_{\\text{dev}} \\right| - \\sigma_y - H \\varepsilon_p
+```
+
+The evolution equation of associative type for the plastic velocity gradient is
+
+```math
+\\boldsymbol{L}_p = \\dot \\boldsymbol{F}_p \\boldsymbol{F}_p^{-1} = \\dot \\gamma \\frac{\\partial \\phi}{\\partial \\boldsymbol{M}} = \\dot \\gamma \\boldsymbol{\\nu}
+```
+
+As an simplification for the local backward Euler integration in the material routine, it is assumed that
+\$ \\boldsymbol{\\nu} = ^n\\boldsymbol{\\nu} \$. This reduces the system of equations to only one equation 
+(namely the yield function).
+    
+"""
+function material_response(mp::MatHyperElasticPlastic, C::SymmetricTensor{2,3,T,6}, state::MatHyperElasticPlasticState, Δt=0.0; 
+    cache=nothing, options=nothing) where T
 
     S, ∂S∂C, ϵᵖ, ν, Fᵖ, _, _ = _compute_2nd_PK(mp, C, state, false)
 
     return S, ∂S∂C, MatHyperElasticPlasticState(ϵᵖ, Fᵖ, ν)
 end
 
+"""
+    material_response(mp::MatHyperElasticPlastic, C::SymmetricTensor{2,3,T,6}, state::MatHyperElasticPlasticState, Δt, extras::Symbol;  <keyword arguments>)
 
-function material_response(mp::MatHyperElasticPlastic, C::SymmetricTensor{2,3,T,6}, state::MatHyperElasticPlasticState, Δt=0.0, ::Symbol
-    ; nothing, ::Dict{Symbol, Any} = Dict{Symbol, Any}()) 
+In addition to returning the stress, tangent and state, it also return extra data related to the amount 
+of dissipation energy, according to:
+
+```math
+D = \\dot \\boldsymbol{M} : \\boldsymbol{L}_p (\\geq 0)
+```
+
+"""
+function material_response(mp::MatHyperElasticPlastic, C::SymmetricTensor{2,3,T,6}, state::MatHyperElasticPlasticState, Δt, ::Symbol
+    ; cache=nothing, options=nothing) where T 
     
     S, ∂S∂C, ϵᵖ, ν, Fᵖ, g, dgdC = _compute_2nd_PK(mp, C, state, true)
 

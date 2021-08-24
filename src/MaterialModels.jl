@@ -86,6 +86,7 @@ function update_cache! end
 
 include("LinearElastic.jl")
 include("Plastic.jl")
+include("FiniteStrain/largedef_plastic.jl")
 include("CrystalViscoPlastic/slipsystems.jl")
 include("CrystalViscoPlastic/CrystalViscoPlastic.jl")
 include("CrystalViscoPlastic/CrystalViscoPlasticRed.jl")
@@ -103,6 +104,7 @@ export material_response
 export AbstractMaterial
 export LinearElastic, Plastic
 export LinearElasticState, PlasticState
+export MatHyperElasticPlastic, MatHyperElasticPlasticState
 export OneD, UniaxialStrain, UniaxialStress, PlaneStrain, PlaneStress
 
 export NeoHook, Yeoh, StVenant
