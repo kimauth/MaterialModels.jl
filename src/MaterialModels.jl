@@ -26,9 +26,16 @@ Store state variables here. For now, this should **not** be mutable, a new objec
 """
 abstract type AbstractMaterialState end
 abstract type AbstractResiduals end
+"""
+    AbstractExtras
+
+Container for extra output variables from the material routine, in addition to what is usual or strictly necessary (stress, tangent and state).
+"""
+abstract type AbstractExtras end
+struct EmptyExtras <: AbstractExtras end
 
 """
-    material_response(m::AbstractMaterial, Δε::SymmetricTensor{2,3}, state::AbstractMaterialState, Δt; cache, options)
+    material_response(m::AbstractMaterial, Δε::SymmetricTensor{2,3}, state::AbstractMaterialState, Δt [,extras::Symbol]; cache, options)
 
 Compute the stress, stress tangent and state variables for the given strain increment `Δε` and previous state `state`.
 
@@ -37,8 +44,16 @@ For non-continuum kind of material models, the interface should be similar with 
 (E.g. for cohesive laws traction instead of stress and displacement jump instead of strain.)
 This function signature must be the same for all material models, even if they don't require all arguments.
 
+If `extras` is defined in the argument list, some materials will also output additional data computed in the material 
+routine (e.g dissipaiton).
 """
 function material_response end
+
+#Fallback for materials that has no extra outputs
+function material_response(m::AbstractMaterial, strain, state::AbstractMaterialState, Δt, extras::Symbol; cache, options)
+    stress, tangent, state = material_response(m, strain, state, Δt; cache=cache, options=options)
+    return stress, tangent, state, EmptyExtras()
+end
 
 """
     initial_material_state(::AbstractMaterial)
