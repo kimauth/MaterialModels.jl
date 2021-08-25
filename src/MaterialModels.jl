@@ -28,6 +28,14 @@ abstract type AbstractMaterialState end
 abstract type AbstractResiduals end
 
 """
+    AbstractExtras
+
+Outputs from the material routine in addition to what is usual or strictly necessary (stress, tangent and state)
+"""
+abstract type AbstractExtras end
+struct EmptyExtras <: AbstractExtras end
+
+"""
     material_response(m::AbstractMaterial, Δε::SymmetricTensor{2,3}, state::AbstractMaterialState, Δt; cache, options)
 
 Compute the stress, stress tangent and state variables for the given strain increment `Δε` and previous state `state`.
@@ -39,6 +47,16 @@ This function signature must be the same for all material models, even if they d
 
 """
 function material_response end
+
+"""
+    material_response(m::AbstractMaterial, Δε::SymmetricTensor{2,3}, state::AbstractMaterialState, Δt, ::Symbol; cache, options)
+
+Fallback for materials that has no extra outputs
+"""
+function material_response(m::AbstractMaterial, strain, state::AbstractMaterialState, Δt, ::Symbol; cache, options)
+    stress, tangent, state = material_response(m, strain, state, Δt; cache=cache, options=options)
+    return stress, tangent, state, EmptyExtras()
+end
 
 """
     initial_material_state(::AbstractMaterial)
@@ -68,6 +86,7 @@ function update_cache! end
 
 include("LinearElastic.jl")
 include("Plastic.jl")
+include("FiniteStrain/largedef_plastic.jl")
 include("CrystalViscoPlastic/slipsystems.jl")
 include("CrystalViscoPlastic/CrystalViscoPlastic.jl")
 include("CrystalViscoPlastic/CrystalViscoPlasticRed.jl")
@@ -85,6 +104,7 @@ export material_response
 export AbstractMaterial
 export LinearElastic, Plastic
 export LinearElasticState, PlasticState
+export MatHyperElasticPlastic, MatHyperElasticPlasticState
 export OneD, UniaxialStrain, UniaxialStress, PlaneStrain, PlaneStress
 
 export NeoHook, Yeoh, StVenant
