@@ -30,3 +30,15 @@ function check_jld2(material::MaterialModels.AbstractMaterial, loading::Vector, 
     end
 
 end
+
+function check_tangents_AD(material::MaterialModels.AbstractMaterial,loading::Vector)
+    state = initial_material_state(material)
+    for load in loading
+        stress, tangent, state = material_response(material, load, state)
+        ∂²Ψ∂C², ∂Ψ∂C, _ =  hessian(C -> MaterialModels.ψ(material, C), load, :all)
+        stress_AD = 2*∂Ψ∂C
+        tangent_AD = 4*∂²Ψ∂C²
+        @test stress ≈ stress_AD
+        @test tangent ≈ tangent_AD
+    end
+end

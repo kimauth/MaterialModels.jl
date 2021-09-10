@@ -34,9 +34,21 @@ end
 
 function material_response(mp::Yeoh, C::SymmetricTensor{2,3}, state::YeohState = YeohState(), 
                            Δt=nothing; cache=nothing, options=nothing)
-    ∂²Ψ∂C², ∂Ψ∂C, _ =  hessian((C) -> ψ(mp, C), C, :all)
-    S = 2.0 * ∂Ψ∂C
-    ∂S∂C = 2.0 * ∂²Ψ∂C²
-    return S, ∂S∂C, YeohState()
+    invC=inv(C)
+    detC=det(C); 
+    J=sqrt(detC);
+
+    dlnJdc = 1/2*invC
+    d2lnJdcdc = 1/2*inv(otimesu(-C,C))
+
+    𝐈 = one(C)
+    Ic = tr(C)
+
+    S = 2*(mp.μ/2*𝐈 + 2*mp.c₂*(Ic-3)*𝐈 + 3*mp.c₃*(Ic-3)^2*𝐈 - mp.μ*dlnJdc + mp.λ* log(J) * dlnJdc)
+    ∂S∂E = 4 * (2*mp.c₂*(𝐈 ⊗ 𝐈) + 6*mp.c₃*(Ic-3)*(𝐈 ⊗ 𝐈) - mp.μ*d2lnJdcdc + mp.λ*(log(J)*d2lnJdcdc + (dlnJdc ⊗ dlnJdc)))
+    ∂S∂E = symmetric(∂S∂E)
+    # TODO use transform tangents from traits branch
+
+    return S, ∂S∂E, YeohState()
 end
 

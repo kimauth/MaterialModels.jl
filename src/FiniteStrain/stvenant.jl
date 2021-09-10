@@ -23,15 +23,25 @@ function StVenant(; λ::T, μ::T) where T
     return StVenant(λ, μ)
 end
 
-function _SPK(mp::StVenant, C::SymmetricTensor{2,3})
-    I = one(C)
-    return 0.5*mp.λ*(tr(C) - 3)*I + mp.μ*(C - I)
+function ψ(mp::StVenant, C)
+    μ = mp.μ
+    λ = mp.λ
+    Ic = tr(C) 
+    IIc = tr(det(C) * inv(C)')
+    return λ / 8 * (Ic - 3)^2 + μ / 4 * (Ic^2 - 2 * Ic - 2 * IIc + 3)
 end
 
 function material_response(mp::StVenant, C::SymmetricTensor{2,3}, state::StVenantState = StVenantState(), 
                            Δt=nothing; cache=nothing, options=nothing)
                            
-    ∂S∂C, S =  gradient((C) -> _SPK(mp, C), C, :all)
+    μ = mp.μ
+    λ = mp.λ
+    I = one(SymmetricTensor{2,3})
+
+    S = λ/2 * (tr(C) - 3)*I + μ*(C-I)
+    ∂S∂C = λ*(I⊗I) + μ*(otimesu(I,I) + otimesl(I,I))
+    ∂S∂C = symmetric(∂S∂C)
+
     return S, ∂S∂C, StVenantState()
 end
 
