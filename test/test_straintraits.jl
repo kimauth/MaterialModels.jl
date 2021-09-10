@@ -4,8 +4,17 @@
     state = initial_material_state(mat)
     F = Tensor{2,3}((2.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0))
     Δt = 0.0
+    I = one(SymmetricTensor{2,3,Float64})
 
-    S, _dSdE, state = material_response(dSdE(), mat, F, state, Δt)
-    Pᵀ, _dPᵀdF, state = material_response(dPᵀdF(), mat, F, state, Δt)
+
+    S, dSdC, state = material_response(∂S∂C(), mat, F, state, Δt)
+
+    Pᵀ, dPᵀdF, state = material_response(∂Pᵀ∂F(), mat, F, state, Δt)
+    @test Pᵀ == S⋅F'
+    @test dPᵀdF == otimesu(F,I) ⊡ dSdC ⊡ otimesu(F',I) + otimesu(S,I)
+
+    S_E, dSdE, state = material_response(∂S∂E(), mat, F, state, Δt)
+    @test S_E == S
+    @test 2dSdC == dSdE
 
 end
