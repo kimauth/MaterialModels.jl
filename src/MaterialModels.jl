@@ -28,6 +28,12 @@ abstract type AbstractMaterialState end
 abstract type AbstractResiduals end
 
 """
+    StrainMeasure
+Defines the type of strain measure the a material uses, i.e Deformation gradient, Green-Lagrange strain etc. 
+"""
+abstract type StrainMeasure end
+
+"""
     material_response(m::AbstractMaterial, Δε::SymmetricTensor{2,3}, state::AbstractMaterialState, Δt; cache, options)
 
 Compute the stress, stress tangent and state variables for the given strain increment `Δε` and previous state `state`.
@@ -65,7 +71,7 @@ As the residual functions depend i.a. on the strain increment, the function and 
 """
 function update_cache! end
 
-
+include("traits.jl")
 include("LinearElastic.jl")
 include("Plastic.jl")
 include("CrystalViscoPlastic/slipsystems.jl")
@@ -86,6 +92,7 @@ export AbstractMaterial
 export LinearElastic, Plastic
 export LinearElasticState, PlasticState
 export OneD, UniaxialStrain, UniaxialStress, PlaneStrain, PlaneStress
+export ∂S∂C, ∂S∂E, ∂Pᵀ∂F
 
 export NeoHook, Yeoh, StVenant
 end
