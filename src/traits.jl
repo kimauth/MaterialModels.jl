@@ -7,15 +7,15 @@ struct VelocityGradient <: StrainMeasure end
 strainmeasure(m::AbstractMaterial) = error("Strain measure for material $m not defined ")
 
 abstract type AbstractTangent end
-struct dSdC <: AbstractTangent end
-struct dSdE <: AbstractTangent end
-struct dPᵀdF <: AbstractTangent end
+struct ∂S∂C <: AbstractTangent end
+struct ∂S∂E <: AbstractTangent end
+struct ∂Pᵀ∂F <: AbstractTangent end
 
 #Here we must associate a strain meassure with an output tangent
 # These default makes sence: 
-default_tangent(::GreenLagrange) = dSdE()
-default_tangent(::RightCauchyGreen) = dSdC()
-default_tangent(::DeformationGradient) = dPᵀdF()
+default_tangent(::GreenLagrange) = ∂S∂E()
+default_tangent(::RightCauchyGreen) = ∂S∂C()
+default_tangent(::DeformationGradient) = ∂Pᵀ∂F()
 
 """
     compute_strain(F::Tensor{2}, stype::StrainMeasure)
@@ -31,14 +31,19 @@ compute_strain(F::Tensor{2}, ::DeformationGradient) = F
 
 Transform the stress and tangent
 """
-transform_tangent(S, dSdC, F::Tensor{2}, from::dSdC, to::dSdE) = S, 2dSdC
-transform_tangent(S, dSdC, F::Tensor{2,3,T}, from::dSdC, to::dPᵀdF) where T = begin 
+transform_tangent(S , dSdC,  F::Tensor{2}, from::∂S∂C, to::∂S∂C) = S, dSdC
+transform_tangent(Pᵀ, ∂Pᵀ∂F, F::Tensor{2}, from::∂Pᵀ∂F, to::∂Pᵀ∂F) = Pᵀ, ∂Pᵀ∂F
+transform_tangent(S , ∂S∂E,  F::Tensor{2}, from::∂S∂E, to::∂S∂E) = S, ∂S∂E
+
+transform_tangent(S, dSdC, F::Tensor{2}, from::∂S∂C, to::∂S∂E) = S, 2dSdC
+transform_tangent(S, dSdC, F::Tensor{2,3,T}, from::∂S∂C, to::∂Pᵀ∂F) where T = begin 
     I = one(SymmetricTensor{2,3,T})
     Pᵀ = S⋅F'
     dPᵀdF = otimesu(F,I) ⊡ dSdC ⊡ otimesu(F',I) + otimesu(S,I)
     return Pᵀ, dPᵀdF
 end
-transform_tangent(S, dSdC, F::Tensor{2}, from::dPᵀdF, to::dSdC) = begin
+transform_tangent(Pᵀ, dPᵀdF, F::Tensor{2}, from::∂Pᵀ∂F, to::∂S∂C) = begin
+    I = one(SymmetricTensor{2,3,T})
     S = Pᵀ ⋅ inv(F')
     dSdC = 2 * inv( otimesu(F,I) ) ⊡ (dPᵀdF - otimesu(S,I)) ⊡ inv( otimesu(F',I) )
     return S, dSdC
@@ -53,11 +58,8 @@ other stress/tangent defined by `output_tangent` (dSdC, dPᵀdF etc.)
 """
 
 function material_response(output_tangent::AbstractTangent, m::AbstractMaterial, F::Tensor{2}, state::AbstractMaterialState, Δt::Float64 = 0.0; cache=nothing, options=nothing)
-    return material_response(output_tangent, strainmeasure(m), m, F, state, Δt, cache=cache, options=options)
-end
+    straintype = strainmeasure(m);
 
-function material_response(output_tangent::AbstractTangent, straintype::StrainMeasure, m::AbstractMaterial, F::Tensor{2}, state::AbstractMaterialState, Δt::Float64; cache, options)
-    
     strain = compute_strain(F, straintype)
     stress, strain, newstate = material_response(m, strain, state, Δt, cache=cache, options=options)
     out_stress, out_tangent = transform_tangent(stress, strain, F, default_tangent(straintype), output_tangent)
