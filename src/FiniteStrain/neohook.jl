@@ -24,6 +24,8 @@ function NeoHook(; λ::T, μ::T) where T
     return NeoHook(λ, μ)
 end
 
+strainmeasure(::NeoHook) = RightCauchyGreen()
+
 function ψ(mp::NeoHook, C::SymmetricTensor{2,3})
     J = sqrt(det(C))
     I = tr(C)

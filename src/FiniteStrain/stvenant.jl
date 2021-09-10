@@ -23,6 +23,8 @@ function StVenant(; λ::T, μ::T) where T
     return StVenant(λ, μ)
 end
 
+strainmeasure(::StVenant) = RightCauchyGreen()
+
 function ψ(mp::StVenant, C)
     μ = mp.μ
     λ = mp.λ

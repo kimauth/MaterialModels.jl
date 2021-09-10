@@ -26,6 +26,8 @@ function Yeoh(; λ::T, μ::T, c₂::T, c₃::T) where T <: AbstractFloat
     return Yeoh(λ, μ, c₂, c₃)
 end
 
+strainmeasure(::Yeoh) = RightCauchyGreen()
+
 function ψ(mp::Yeoh, C::SymmetricTensor{2,3})
     J = sqrt(det(C))
     I = tr(C)
