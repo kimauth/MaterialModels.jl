@@ -1,4 +1,3 @@
-
 """
     XuNeedleman(σₘₐₓ, τₘₐₓ, Φₙ, Φₜ, Δₙˢ)
 
@@ -21,14 +20,18 @@ For convenience the following functions can be used to convert parameters:
 - [`xu_needleman_τₘₐₓ`](@ref)
 """
 struct XuNeedleman <: AbstractMaterial
-    σₘₐₓ::Float64
-    τₘₐₓ::Float64
     Φₙ::Float64
     Φₜ::Float64
+    δₙ::Float64
+    δₜ::Float64
     Δₙˢ::Float64
 end
 
-XuNeedleman(; σₘₐₓ::Float64, τₘₐₓ::Float64, Φₙ::Float64, Φₜ::Float64, Δₙˢ::Float64) = XuNeedleman(σₘₐₓ, τₘₐₓ, Φₙ, Φₜ, Δₙˢ)
+function XuNeedleman(; σₘₐₓ::Float64, τₘₐₓ::Float64, Φₙ::Float64, Φₜ::Float64, Δₙˢ::Float64)
+    δₙ = Φₙ / (exp(1.0) * σₘₐₓ)
+    δₜ = Φₜ / (sqrt(0.5exp(1.0)) * τₘₐₓ)
+    return XuNeedleman(Φₙ, Φₜ, δₙ, δₜ, Δₙˢ)
+end
 
 # help converting between different possible material parameters
 """
@@ -80,7 +83,7 @@ function material_response(m::XuNeedleman, Δ::Tensor{1,dim}, state::XuNeedleman
 
     Φ(Δₜ, Δₙ) = Φₙ + Φₙ*exp(-Δₙ/δₙ) * ((1 - r + Δₙ/δₙ) * (1-q)/(r-1) - (q + (r-q)/(r-1) * Δₙ/δₙ) * exp(-(Δₜ ⋅ Δₜ) / δₜ^2))
 
-    dTdΔ, T, _ = hessian(Δ -> Φ((@view Δ[1:end-1]), last(Δ)), Δ, :all)
+    dTdΔ, T, _ = hessian(Δ -> Φ((Tensor{1,dim-1}(i->Δ[i])), last(Δ)), Δ, :all)
 
     return T, dTdΔ, state
 end
