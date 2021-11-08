@@ -99,6 +99,7 @@ export ∂S∂C, ∂S∂E, ∂Pᵀ∂F
 export NeoHook, Yeoh, StVenant
 
 export XuNeedleman
+export xu_needleman_Φₙ, xu_needleman_Φₜ, xu_needleman_σₘₐₓ, xu_needleman_τₘₐₓ
 export XuNeedlemanState
 
 end

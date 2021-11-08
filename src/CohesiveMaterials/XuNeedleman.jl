@@ -1,6 +1,6 @@
 
 """
-    XuNeedleman(σₘₐₓ, τₘₐₓ, δₙ, δₜ, Φₙ, Φₜ, Δₙˢ)
+    XuNeedleman(σₘₐₓ, τₘₐₓ, Φₙ, Φₜ, Δₙˢ)
 
 Xu-Needleman traction-separation law.[^Xu1993] This is a commonly used cohesive law for brittle fracture, 
 however it is revertible and thus not suited for unloading. In 3D, it is isotropic within the cohesive plane.
@@ -10,52 +10,51 @@ however it is revertible and thus not suited for unloading. In 3D, it is isotrop
 # Arguments
 - `σₘₐₓ::Float64`: cohesive normal strength
 - `τₘₐₓ::Float64`: cohesive tangential strength (in-plane strength)
-- `δₙ::Float64`: characteristic normal separation
-- `δₜ`::Float64`: characteristic tangential separation
 - `Φₙ::Float64`: normal work of separation
 - `Φₜ::Float64`: tangential work of separation
 - `Δₙˢ`: normal separation after complete shear separation under the condition of zero normal tension
 
-Out of the pairs cohesive strength / characteristic normal separation / work of separation any two can be given
-for construction the `XuNeedleman` material.
+For convenience the following functions can be used to convert parameters:
+- [`xu_needleman_Φₙ`](@ref)
+- [`xu_needleman_Φₜ`](@ref)
+- [`xu_needleman_σₘₐₓ`](@ref)
+- [`xu_needleman_τₘₐₓ`](@ref)
 """
 struct XuNeedleman <: AbstractMaterial
     σₘₐₓ::Float64
     τₘₐₓ::Float64
-    δₙ::Float64
-    δₜ::Float64
     Φₙ::Float64
     Φₜ::Float64
     Δₙˢ::Float64
 end
 
-function XuNeedleman(;
-    σₘₐₓ::Union{Nothing, Float64}=nothing,
-    τₘₐₓ::Union{Nothing, Float64}=nothing,
-    δₙ::Union{Nothing, Float64}=nothing,
-    δₜ::Union{Nothing, Float64}=nothing,
-    Φₙ::Union{Nothing, Float64}=nothing,
-    Φₜ::Union{Nothing, Float64}=nothing,
-    Δₙˢ::Float64,
-)
-    p_strength = σₘₐₓ !== nothing && τₘₐₓ !== nothing
-    p_jump = δₙ !== nothing && δₜ !== nothing
-    p_work = Φₙ !== nothing && Φₜ !== nothing
-    p_strength + p_jump + p_work == 2 || error("You need to prescribe exactly 2 pairs out of cohesive strength, characteristic separations and work of separation.")
+XuNeedleman(; σₘₐₓ::Float64, τₘₐₓ::Float64, Φₙ::Float64, Φₜ::Float64, Δₙˢ::Float64) = XuNeedleman(σₘₐₓ, τₘₐₓ, Φₙ, Φₜ, Δₙˢ)
 
-    if !p_strength 
-        σₘₐₓ = Φₙ / (exp(1.0) * δₙ)
-        τₘₐₓ = Φₜ / (sqrt(0.5exp(1.0)) * δₜ)
-    elseif !p_jump
-        δₙ = Φₙ / (exp(1.0) * σₘₐₓ)
-        δₜ = Φₜ / (sqrt(0.5exp(1.0)) * τₘₐₓ)
-    elseif !p_work
-        Φₙ = σₘₐₓ * exp(1.0) * δₙ
-        Φₜ = τₘₐₓ * sqrt(0.5exp(1.0)) * δₜ
-    end
+# help converting between different possible material parameters
+"""
+    xu_needleman_Φₙ(σₘₐₓ, δₙ)
 
-    return XuNeedleman(σₘₐₓ, τₘₐₓ, δₙ, δₜ, Φₙ, Φₜ, Δₙˢ)
-end
+Compute the normal work of separation `Φₙ` for the Xu-Needleman cohesive law based on the cohesive normal strength `σₘₐₓ` and the characteristic normal separation `δₙ`.
+"""
+xu_needleman_Φₙ(σₘₐₓ, δₙ) = σₘₐₓ * exp(1.0) * δₙ
+"""
+    xu_needleman_Φₜ(τₘₐₓ, δₜ)
+
+Compute the tangential work of separation `Φₜ` for the Xu-Needleman cohesive law based on the cohesive tangential strength `τₘₐₓ` and the characteristic tangential separation `δₜ`.
+"""
+xu_needleman_Φₜ(τₘₐₓ, δₜ) = τₘₐₓ * sqrt(0.5exp(1.0)) * δₜ
+"""
+    xu_needleman_σₘₐₓ(Φₙ, δₙ) = Φₙ / (exp(1.0) * δₙ)
+
+Compute the cohesive normal strength `σₘₐₓ` for the Xu-Needleman cohesive law based on the normal work of separation `Φₙ` and the characteristic normal separation `δₙ`.
+"""
+xu_needleman_σₘₐₓ(Φₙ, δₙ) = Φₙ / (exp(1.0) * δₙ)
+"""
+    xu_needleman_τₘₐₓ(Φₜ, δₜ)
+
+Compute the cohesive tangential strength `τₘₐₓ` for the Xu-Needleman cohesive law based on the tangential work of separation `Φₜ` and the characteristic tangential separation `δₜ`.
+"""
+xu_needleman_τₘₐₓ(Φₜ, δₜ) = Φₜ / (sqrt(0.5exp(1.0)) * δₜ)
 
 struct XuNeedlemanState <: AbstractMaterialState end
 initial_material_state(::XuNeedleman) = XuNeedlemanState()
