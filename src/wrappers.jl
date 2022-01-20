@@ -10,16 +10,17 @@ getdim(::UniaxialStrain) = 1
 getdim(::UniaxialStress) = 1
 getdim(::PlaneStrain) = 2
 getdim(::PlaneStress) = 2
+getdim(::ThreeD) = 3
 
 reduce_dim(A::Tensor{1,3}, d::AbstractDim) = Tensor{1,getdim(d)}(i->A[i])
 reduce_dim(A::Tensor{2,3}, d::AbstractDim) = Tensor{2,getdim(d)}((i,j)->A[i,j])
 reduce_dim(A::Tensor{4,3}, d::AbstractDim) = Tensor{4,getdim(d)}((i,j,k,l)->A[i,j,k,l])
-reduce_dim(A::SymmetricTensor{2,3}, ::AbstractDim) = SymmetricTensor{2,dim}((i,j)->A[i,j])
-reduce_dim(A::SymmetricTensor{4,3}, ::AbstractDim) = SymmetricTensor{4,dim}((i,j,k,l)->A[i,j,k,l])
+reduce_dim(A::SymmetricTensor{2,3}, d::AbstractDim) = SymmetricTensor{2,getdim(d)}((i,j)->A[i,j])
+reduce_dim(A::SymmetricTensor{4,3}, d::AbstractDim) = SymmetricTensor{4,getdim(d)}((i,j,k,l)->A[i,j,k,l])
 
-increase_dim(A::Tensor{1,dim,T}) where {dim, T} = Tensor{1,3}(i->(i <= dim ? A[i] : zero(T)))
-increase_dim(A::Tensor{2,dim,T}) where {dim, T} = Tensor{2,3}((i,j)->(i <= dim && j <= dim ? A[i,j] : zero(T)))
-increase_dim(A::SymmetricTensor{2,dim,T}) where {dim, T} = SymmetricTensor{2,3}((i,j)->(i <= dim && j <= dim ? A[i,j] : zero(T)))
+increase_dim(A::Tensor{1,dim,T}) where {dim,T} = Tensor{1,3}(i->(i <= dim ? A[i] : zero(T)))
+increase_dim(A::Tensor{2,dim,T}) where {dim,T} = Tensor{2,3}((i,j)->(i <= dim && j <= dim ? A[i,j] : zero(T)))
+increase_dim(A::SymmetricTensor{2,dim,T}) where {dim,T} = SymmetricTensor{2,3}((i,j)->(i <= dim && j <= dim ? A[i,j] : zero(T)))
 
 # 3d materials pass through
 function material_response(
