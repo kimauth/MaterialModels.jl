@@ -5,6 +5,10 @@
     δₜ=0.002
     Φₙ = xu_needleman_Φₙ(σₘₐₓ, δₙ)
     Φₜ = xu_needleman_Φₜ(τₘₐₓ, δₜ)
+    # test parameter conversion
+    @test xu_needleman_σₘₐₓ(Φₙ, δₙ) ≈ σₘₐₓ
+    @test xu_needleman_τₘₐₓ(Φₜ, δₜ) ≈ τₘₐₓ
+    
     m = XuNeedleman(σₘₐₓ = σₘₐₓ, τₘₐₓ=τₘₐₓ, Φₙ=Φₙ, Φₜ=Φₜ, Δₙˢ=0.01)
 
     # 3D
