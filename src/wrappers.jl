@@ -1,15 +1,17 @@
-abstract type AbstractDim{dim} end
 
 struct Dim{dim} <: AbstractDim{dim} end # generic
 struct UniaxialStrain{dim} <: AbstractDim{dim} end # 1D uniaxial strain state
 struct UniaxialStress{dim} <: AbstractDim{dim} end # 1D uniaxial stress state
 struct PlaneStrain{dim} <: AbstractDim{dim} end # 2D plane strain state
 struct PlaneStress{dim} <: AbstractDim{dim} end # 2D plane stress state
+struct ThreeD{dim} <: AbstractDim{dim} end
+
 # constructors without dim parameter
 UniaxialStrain() = UniaxialStrain{1}()
 UniaxialStress() = UniaxialStress{1}()
 PlaneStrain() = PlaneStrain{2}()
 PlaneStress() = PlaneStress{2}()
+ThreeD() = ThreeD{3}()
 
 reduce_dim(A::Tensor{1,3}, ::AbstractDim{dim}) where dim = Tensor{1,dim}(i->A[i])
 reduce_dim(A::Tensor{2,3}, ::AbstractDim{dim}) where dim = Tensor{2,dim}((i,j)->A[i,j])
@@ -17,13 +19,35 @@ reduce_dim(A::Tensor{4,3}, ::AbstractDim{dim}) where dim = Tensor{4,dim}((i,j,k,
 reduce_dim(A::SymmetricTensor{2,3}, ::AbstractDim{dim}) where dim = SymmetricTensor{2,dim}((i,j)->A[i,j])
 reduce_dim(A::SymmetricTensor{4,3}, ::AbstractDim{dim}) where dim = SymmetricTensor{4,dim}((i,j,k,l)->A[i,j,k,l])
 
+#default
 increase_dim(A::Tensor{1,dim,T}) where {dim, T} = Tensor{1,3}(i->(i <= dim ? A[i] : zero(T)))
 increase_dim(A::Tensor{2,dim,T}) where {dim, T} = Tensor{2,3}((i,j)->(i <= dim && j <= dim ? A[i,j] : zero(T)))
 increase_dim(A::SymmetricTensor{2,dim,T}) where {dim, T} = SymmetricTensor{2,3}((i,j)->(i <= dim && j <= dim ? A[i,j] : zero(T)))
 
+#RightCauchyGreen, pad with 1 instead of 0
+increase_dim(A::SymmetricTensor{2,dim,T}, ::RightCauchyGreen) where {dim, T} = SymmetricTensor{2,3}((i,j)->(i <= dim && j <= dim ? A[i,j] : ((i==(dim+1) && j==(dim+1)) ? one(T) : zero(T))) )
+increase_dim(A::SymmetricTensor{2,dim,T}, ::GreenLagrange) where {dim, T} = increase_dim(A)
+increase_dim(A::SymmetricTensor{2,dim,T}, ::EngineeringStrain) where {dim, T} = increase_dim(A)
+
+# Pass-through function for 3d
+function material_response(
+    dim::ThreeD{3},
+    m::AbstractMaterial,
+    Δε::AbstractTensor{2,3,T},
+    state::AbstractMaterialState,
+    Δt = nothing;
+    cache = nothing,
+    options = Dict{Symbol, Any}(),
+    ) where {T}
+
+    σ, dσdε, material_state = material_response(m, Δε, state, Δt; cache=cache, options=options)
+
+    return σ, dσdε, material_state
+end
+
 # restricted strain states
 function material_response(
-    dim::Union{Dim{d}, UniaxialStrain{d}, PlaneStrain{d}},
+    dim::Union{UniaxialStrain{d}, PlaneStrain{d}},
     m::AbstractMaterial,
     Δε::AbstractTensor{2,d,T},
     state::AbstractMaterialState,
@@ -32,7 +56,7 @@ function material_response(
     options = Dict{Symbol, Any}(),
     ) where {d,T}
 
-    Δε_3D = increase_dim(Δε)
+    Δε_3D = increase_dim(Δε, strainmeasure(m))
     σ, dσdε, material_state = material_response(m, Δε_3D, state, Δt; cache=cache, options=options)
 
     return reduce_dim(σ, dim), reduce_dim(dσdε, dim), material_state
@@ -53,7 +77,7 @@ function material_response(
     max_iter = get(options, :plane_stress_max_iter, 10)
     converged = false
 
-    Δε_3D = increase_dim(Δε)
+    Δε_3D = increase_dim(Δε, strainmeasure(m))
     
     zero_idxs = get_zero_indices(dim, Δε_3D)
     nonzero_idxs = get_nonzero_indices(dim, Δε_3D)

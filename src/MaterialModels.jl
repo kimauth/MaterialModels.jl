@@ -34,6 +34,12 @@ Defines the type of strain measure the a material uses, i.e Deformation gradient
 abstract type StrainMeasure end
 
 """
+    AbstractDim
+Defines the state of stress or strain in 2d/1d problems, e.g. PlaneStress() or PlaneStrain()
+"""
+abstract type AbstractDim{dim} end
+
+"""
     material_response(m::AbstractMaterial, Δε::SymmetricTensor{2,3}, state::AbstractMaterialState, Δt; cache, options)
 
 Compute the stress, stress tangent and state variables for the given strain increment `Δε` and previous state `state`.
@@ -71,7 +77,6 @@ As the residual functions depend i.a. on the strain increment, the function and 
 """
 function update_cache! end
 
-include("traits.jl")
 include("LinearElastic.jl")
 include("Plastic.jl")
 include("CrystalViscoPlastic/slipsystems.jl")
@@ -83,6 +88,7 @@ include("FiniteStrain/yeoh.jl")
 include("FiniteStrain/stvenant.jl")
 
 include("nonlinear_solver.jl")
+include("traits.jl")
 include("wrappers.jl")
 
 export initial_material_state, get_cache
