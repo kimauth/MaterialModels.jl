@@ -62,6 +62,8 @@ xu_needleman_τₘₐₓ(Φₜ, δₜ) = Φₜ / (sqrt(0.5exp(1.0)) * δₜ)
 struct XuNeedlemanState <: AbstractMaterialState end
 initial_material_state(::XuNeedleman) = XuNeedlemanState()
 
+get_cache(::XuNeedleman) = nothing
+
 """
     material_response(m::XuNeedleman, Δ::Tensor{1,dim}) where dim
 
