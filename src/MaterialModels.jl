@@ -34,6 +34,12 @@ Defines the type of strain measure the a material uses, i.e Deformation gradient
 abstract type StrainMeasure end
 
 """
+    AbstractCache
+Stores matrices, vectors etc. to avoid re-allcating memory each time the material routine is called.
+"""
+abstract type AbstractCache end
+
+"""
     material_response(m::AbstractMaterial, Δε::SymmetricTensor{2,3}, state::AbstractMaterialState, Δt; cache, options)
 
 Compute the stress, stress tangent and state variables for the given strain increment `Δε` and previous state `state`.
@@ -74,6 +80,9 @@ Update the cache object with the residual function for the current time/load ste
 As the residual functions depend i.a. on the strain increment, the function and its jacobian need to be updated for every load step.
 """
 function update_cache! end
+
+struct DefaultCache <: AbstractCache end
+get_cache(::AbstractMaterial) = DefaultCache() #Fallback for materials that does need to allocate.
 
 include("traits.jl")
 include("LinearElastic.jl")
