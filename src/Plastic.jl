@@ -48,7 +48,7 @@ end
 Base.zero(::Type{PlasticState{dim,T,M}}) where {dim,T,M} = PlasticState(zero(SymmetricTensor{2,dim,T,M}), zero(T), zero(SymmetricTensor{2,dim,T,M}), zero(T))
 initial_material_state(::Plastic) = zero(PlasticState{3,Float64,6})
 
-function get_cache(m::Plastic)
+function _get_cache(m::Plastic)
     state = initial_material_state(m)
     # it doesn't actually matter which state and strain step we use here,
     # f is overwritten in the constitutive driver before being used.
@@ -122,6 +122,8 @@ See [NLsolve documentation](https://github.com/JuliaNLSolvers/NLsolve.jl#common-
 function material_response(m::Plastic, ε::SymmetricTensor{2,3,T,6}, state::PlasticState{3},
     Δt=nothing; cache=get_cache(m), options::Dict{Symbol, Any} = Dict{Symbol, Any}()) where T
 
+    _cache = solver_cache(cache)
+
     σ_trial = m.Eᵉ ⊡ (ε - state.εᵖ)
     Φ = sqrt(3/2)*norm(dev(σ_trial-state.α)) - m.σ_y - state.κ
 
@@ -131,19 +133,19 @@ function material_response(m::Plastic, ε::SymmetricTensor{2,3,T,6}, state::Plas
         # set the current residual function that depends only on the variables
         # cache.f = (r_vector, x_vector) -> vector_residual!(((x)->residuals(x,m,state,Δε)), r_vector, x_vector, m)
         f(r_vector, x_vector) = vector_residual!(((x)->residuals(x,m,state,ε)), r_vector, x_vector, m)
-        update_cache!(cache, f)
+        update_cache!(_cache, f)
         # initial guess
         x0 = ResidualsPlastic(σ_trial, state.κ, state.α, state.μ)
         # convert initial guess to vector
-        tomandel!(cache.x_f, x0)
+        tomandel!(_cache.x_f, x0)
         # solve for variables x
         nlsolve_options = get(options, :nlsolve_params, Dict{Symbol, Any}(:method=>:newton))
         haskey(nlsolve_options, :method) || merge!(nlsolve_options, Dict{Symbol, Any}(:method=>:newton)) # set newton if the user did not supply another method
-        result = NLsolve.nlsolve(cache, cache.x_f; nlsolve_options...)
+        result = NLsolve.nlsolve(_cache, _cache.x_f; nlsolve_options...)
         if result.f_converged
             x = frommandel(ResidualsPlastic, result.zero::Vector{T})
             εᵖ = state.εᵖ + x.μ*(3/(2*sqrt(3/2)*norm(dev(x.σ-x.α)))*dev(x.σ-x.α))
-            dRdx = cache.DF
+            dRdx = _cache.DF
             inv_J_σσ = frommandel(SymmetricTensor{4,3}, inv(dRdx))
             ∂σ∂ε = inv_J_σσ ⊡ m.Eᵉ
             return x.σ, ∂σ∂ε, PlasticState(εᵖ, x.κ, x.α, x.μ)

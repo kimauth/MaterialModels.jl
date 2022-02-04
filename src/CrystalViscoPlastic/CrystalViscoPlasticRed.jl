@@ -59,7 +59,7 @@ end
 Base.zero(::Type{CrystalViscoPlasticRedState{dim,T,M,S}}) where {dim,T,M,S} = CrystalViscoPlasticRedState{dim,T,M,S}(zero(SymmetricTensor{2,dim,T,M}), SVector{S,T}(zeros(T, S)), SVector{S,T}(zeros(T, S)), SVector{S,T}(zeros(T, S)))
 initial_material_state(::CrystalViscoPlasticRed{S}) where S = zero(CrystalViscoPlasticRedState{3,Float64,6,S})
 
-function get_cache(m::CrystalViscoPlasticRed)
+function _get_cache(m::CrystalViscoPlasticRed)
     state = initial_material_state(m)
     # it doesn't actually matter which state and strain step we use here,
     # f is overwritten in the constitutive driver before being used.
@@ -91,18 +91,20 @@ end
 function material_response(m::CrystalViscoPlasticRed{S}, Δε::SymmetricTensor{2,3,T,6}, state::CrystalViscoPlasticRedState{3},
     Δt=1.0; cache=get_cache(m), options::Dict{Symbol, Any} = Dict{Symbol, Any}()) where {S, T}
 
+    _cache = solver_cache(cache)
+
     # set the current residual function that depends only on the variables
     f(r_vector, x_vector) = vector_residual!((x->residuals(x,m,state,Δε,Δt)), r_vector, x_vector, m)
-    update_cache!(cache, f)
+    update_cache!(_cache, f)
     # initial guess
     σ_trial = state.σ + m.Eᵉ ⊡ Δε
     x0 = ResidualsCrystalViscoPlasticRed(state.μ)
     # convert initial guess to vector
-    tomandel!(cache.x_f, x0)
+    tomandel!(_cache.x_f, x0)
     # solve for variables x
     nlsolve_options = get(options, :nlsolve_params, Dict{Symbol, Any}(:method=>:newton))
     haskey(nlsolve_options, :method) || merge!(nlsolve_options, Dict{Symbol, Any}(:method=>:newton)) # set newton if the user did not supply another method
-    result = NLsolve.nlsolve(cache, cache.x_f; nlsolve_options...)
+    result = NLsolve.nlsolve(_cache, _cache.x_f; nlsolve_options...)
     
     if result.f_converged
         x_mandel = result.zero::Vector{T}
@@ -111,11 +113,11 @@ function material_response(m::CrystalViscoPlasticRed{S}, Δε::SymmetricTensor{2
         σ, κ, α = get_state_vars(x.μ, Δε, m, state)
         ############################################
         # tangent computation
-        ∂R∂x = cache.DF
+        ∂R∂x = _cache.DF
         f2(r_vector, x_vector) = vector_residual!((Δε->residuals(x,m,state,Δε,Δt)), r_vector, x_vector, Δε)
         # lucky coincidence that we can reuse the buffers here
-        tomandel!(view(cache.x_f, 1:6), Δε)
-        ∂R∂ε = ForwardDiff.jacobian(f2, cache.F, view(cache.x_f, 1:6)) # ∂R∂ε = ∂R∂Δε
+        tomandel!(view(_cache.x_f, 1:6), Δε)
+        ∂R∂ε = ForwardDiff.jacobian(f2, _cache.F, view(_cache.x_f, 1:6)) # ∂R∂ε = ∂R∂Δε
         ∂X∂ε = -inv(∂R∂x)*∂R∂ε 
         # in this case X is only μ
         ∂σ∂ε = m.Eᵉ
