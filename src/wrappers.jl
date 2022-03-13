@@ -55,28 +55,20 @@ function material_response(
 
     Δε_3D = increase_dim(Δε)
     
-    zero_idxs = get_zero_indices(dim, Δε_3D)
+    #zero_idxs = get_zero_indices(dim, Δε_3D)
     nonzero_idxs = get_nonzero_indices(dim, Δε_3D)
     
-    Δε_voigt = zeros(Float64, 6)
-    fill!(Δε_voigt, 0.0)
-    #σ_mandel = cache.F
-    #J = cache.DF
-    
-    for _ in 1:max_iter
+    for i in 1:max_iter
         σ, ∂σ∂ε, temp_state = material_response(m, Δε_3D, state, Δt; cache=cache, options=options)
-        σ_mandel = tomandel2(dim, σ)
-        if norm(view(σ_mandel, zero_idxs)) < tol
+        σ_mandel = _tomandel_sarray(dim, σ)
+        if norm(σ_mandel) < tol
             converged = true
             ∂σ∂ε_2D = fromvoigt(SymmetricTensor{4,d}, inv(inv(tovoigt(∂σ∂ε))[nonzero_idxs, nonzero_idxs]))
             return reduce_dim(σ, dim), ∂σ∂ε_2D, temp_state
         end
-        J = tomandel2(∂σ∂ε)
-        fill!(Δε_voigt, 0.0)
-        Δε_temp = -view(J, zero_idxs, zero_idxs) \ view(σ_mandel, zero_idxs)
-        @show  typeof(Δε_temp)
-        Δε_voigt[zero_idxs] = Δε_temp
-        Δε_correction = frommandel(SymmetricTensor{2,3}, Δε_voigt)
+        J = _tomandel_sarray(dim, ∂σ∂ε)
+        Δε_temp = -inv(J)*σ_mandel
+        Δε_correction = _frommandel_sarray(dim, Δε_temp)
         Δε_3D = Δε_3D + Δε_correction
     end
     error("Not converged. Could not find plane stress state.")
@@ -87,23 +79,42 @@ function testaa()
 
     state = initial_material_state(m)
 
-    ε = rand(SymmetricTensor{2,2})
+    ε = rand(SymmetricTensor{2,1})
 
-    a,b,c = material_response(PlaneStress(), m, ε, state)
+    @code_warntype material_response(UniaxialStress(), m, ε, state)
 end
 
-function tomandel2(dim::PlaneStress, A::SymmetricTensor{2, 3}) 
-    @SVector [A[1,1], A[2,2], A[3,3], √2A[2,3], √2A[1,3], √2A[1,2]]
+function _tomandel_sarray(::PlaneStress, A::SymmetricTensor{2, 3}) 
+    @SVector [A[3,3], √2A[2,3], √2A[1,3]]
 end
 
-function tomandel2(A::SymmetricTensor{4, 3}) 
-    @SMatrix [A[1,1,1,1] A[1,1,2,2] A[1,1,3,3] √2*A[1,1,2,3] √2*A[1,1,1,3] √2*A[1,1,1,2]; 
-              A[2,2,1,1] A[2,2,2,2] A[2,2,3,3] √2*A[2,2,2,3] √2*A[2,2,1,3] √2*A[2,2,1,2];
-              A[3,3,1,1] A[3,3,2,2] A[3,3,3,3] √2*A[3,3,2,3] √2*A[3,3,1,3] √2*A[3,3,1,2];
-              √2*A[2,3,1,1] √2*A[2,3,2,2] √2*A[2,3,3,3] 2*A[2,3,2,3] 2*A[2,3,1,3] 2*A[2,3,1,2];
-              √2*A[1,3,1,1] √2*A[1,3,2,2] √2*A[1,3,3,3] 2*A[1,3,2,3] 2*A[1,3,1,3] 2*A[1,3,1,2];
-              √2*A[1,2,1,1] √2*A[1,2,2,2] √2*A[1,2,3,3] 2*A[1,2,2,3] 2*A[1,2,1,3] 2*A[1,2,1,2]]
+function _tomandel_sarray(::PlaneStress, A::SymmetricTensor{4, 3}) 
+    @SMatrix [    A[3,3,3,3] √2*A[3,3,2,3] √2*A[3,3,1,3];
+               √2*A[2,3,3,3]  2*A[2,3,2,3]  2*A[2,3,1,3] ;
+               √2*A[1,3,3,3]  2*A[1,3,2,3]  2*A[1,3,1,3] ]
 end
+
+function _frommandel_sarray(::PlaneStress, A::SVector{3,T}) where T 
+    return SymmetricTensor{2,3,T,6}( (0.0, 0.0, A[3]/√2, 0.0, A[2]/√2, A[1]) )
+end
+
+function _tomandel_sarray(::UniaxialStress, A::SymmetricTensor{2, 3}) 
+    @SVector [A[2,2], A[3,3], √2A[2,3], √2A[1,3], √2A[1,2]]
+end
+
+function _tomandel_sarray(::UniaxialStress, A::SymmetricTensor{4, 3}) 
+    @SMatrix [  A[2,2,2,2] A[2,2,3,3] √2*A[2,2,2,3] √2*A[2,2,1,3] √2*A[2,2,1,2];
+                A[3,3,2,2] A[3,3,3,3] √2*A[3,3,2,3] √2*A[3,3,1,3] √2*A[3,3,1,2];
+                √2*A[2,3,2,2] √2*A[2,3,3,3] 2*A[2,3,2,3] 2*A[2,3,1,3] 2*A[2,3,1,2];
+                √2*A[1,3,2,2] √2*A[1,3,3,3] 2*A[1,3,2,3] 2*A[1,3,1,3] 2*A[1,3,1,2];
+                √2*A[1,2,2,2] √2*A[1,2,3,3] 2*A[1,2,2,3] 2*A[1,2,1,3] 2*A[1,2,1,2]]
+
+end
+
+function _frommandel_sarray(::UniaxialStress, A::SVector{5,T}) where T 
+    return SymmetricTensor{2,3,T,6}( (0.0, A[5]/√2, A[4]/√2, A[1], A[3]/√2, A[2]) )
+end 
+
 
 # out of plane / axis components for restricted stress cases
 get_zero_indices(::PlaneStress{2}, ::SymmetricTensor{2,3}) = [3, 4, 5] # for voigt/mandel format, do not use on tensor data!
