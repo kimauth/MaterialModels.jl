@@ -51,7 +51,6 @@ function material_response(
     
     tol = get(options, :plane_stress_tol, 1e-8)
     max_iter = get(options, :plane_stress_max_iter, 10)
-    converged = false
 
     Δε_3D = increase_dim(Δε)
     
@@ -62,7 +61,6 @@ function material_response(
         σ, ∂σ∂ε, temp_state = material_response(m, Δε_3D, state, Δt; cache=cache, options=options)
         σ_mandel = _tomandel_sarray(dim, σ)
         if norm(σ_mandel) < tol
-            converged = true
             ∂σ∂ε_2D = fromvoigt(SymmetricTensor{4,d}, inv(inv(tovoigt(∂σ∂ε))[nonzero_idxs, nonzero_idxs]))
             return reduce_dim(σ, dim), ∂σ∂ε_2D, temp_state
         end
@@ -81,7 +79,7 @@ function testaa()
 
     ε = rand(SymmetricTensor{2,1})
 
-    @code_warntype material_response(UniaxialStress(), m, ε, state)
+    @time material_response(UniaxialStress(), m, ε, state)
 end
 
 function _tomandel_sarray(::PlaneStress, A::SymmetricTensor{2, 3}) 
