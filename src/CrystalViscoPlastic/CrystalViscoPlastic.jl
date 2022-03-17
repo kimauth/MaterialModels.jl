@@ -59,7 +59,7 @@ end
 Base.zero(::Type{CrystalViscoPlasticState{dim,T,M,S}}) where {dim,T,M,S} = CrystalViscoPlasticState{dim,T,M,S}(zero(SymmetricTensor{2,dim,T,M}), SVector{S,T}(zeros(T, S)), SVector{S,T}(zeros(T, S)), SVector{S,T}(zeros(T, S)))
 initial_material_state(::CrystalViscoPlastic{S}) where S = zero(CrystalViscoPlasticState{3,Float64,6,S})
 
-function get_cache(m::CrystalViscoPlastic)
+function _get_cache(m::CrystalViscoPlastic)
     state = initial_material_state(m)
     # it doesn't actually matter which state and strain step we use here,
     # f is overwritten in the constitutive driver before being used.
@@ -110,23 +110,25 @@ end
 function material_response(m::CrystalViscoPlastic{S}, Δε::SymmetricTensor{2,3,T,6}, state::CrystalViscoPlasticState{3},
     Δt=1.0; cache=get_cache(m), options::Dict{Symbol, Any} = Dict{Symbol, Any}()) where {S, T}
 
+    _cache = solver_cache(cache)
+
     # set the current residual function that depends only on the variables
     f(r_vector, x_vector) = vector_residual!((x->residuals(x,m,state,Δε,Δt)), r_vector, x_vector, m)
-    update_cache!(cache, f)
+    update_cache!(_cache, f)
     # initial guess
     σ_trial = state.σ + m.Eᵉ ⊡ Δε
     x0 = ResidualsCrystalViscoPlastic(σ_trial, state.κ, state.α, state.μ)
     # convert initial guess to vector
-    tomandel!(cache.x_f, x0)
+    tomandel!(_cache.x_f, x0)
     # solve for variables x
     nlsolve_options = get(options, :nlsolve_params, Dict{Symbol, Any}(:method=>:newton))
     haskey(nlsolve_options, :method) || merge!(nlsolve_options, Dict{Symbol, Any}(:method=>:newton)) # set newton if the user did not supply another method
-    result = NLsolve.nlsolve(cache, cache.x_f; nlsolve_options...)
+    result = NLsolve.nlsolve(_cache, _cache.x_f; nlsolve_options...)
     
     if result.f_converged
         x_mandel = result.zero::Vector{T}
         x = frommandel(ResidualsCrystalViscoPlastic{S}, x_mandel)
-        dRdx = cache.DF
+        dRdx = _cache.DF
         inv_J_σσ = frommandel(SymmetricTensor{4,3}, inv(dRdx))
         ∂σ∂ε = inv_J_σσ ⊡ m.Eᵉ
         return x.σ, ∂σ∂ε, CrystalViscoPlasticState{3,T,6,S}(x.σ, SVector{S,T}(x.κ), SVector{S,T}(x.α), SVector{S,T}(x.μ))

@@ -45,7 +45,7 @@ function material_response(
     Δε::AbstractTensor{2,d,T},
     state::AbstractMaterialState,
     Δt = nothing;
-    cache =  get_cache(m),
+    cache =  get_cache(m, dim),
     options = Dict{Symbol, Any}(),
     ) where {d, T}
     
@@ -91,22 +91,3 @@ get_nonzero_indices(::UniaxialStress{1}, ::SymmetricTensor{2,3}) = [1] # for voi
 get_zero_indices(::UniaxialStress{1}, ::Tensor{2,3}) = collect(2:9) # for voigt/mandel format, do not use on tensor data!
 get_nonzero_indices(::UniaxialStress{1}, ::Tensor{2,3}) = [1] # for voigt/mandel format, do not use on tensor data!
 
-# fallback in case there is no cache defined
-struct PlaneStressCache{TF, TDF, TX}
-    F::TF
-    DF::TDF
-    x_f::TX
-end
-
-# generic fallback, Materials without field σ need to define it
-get_stress_type(state::AbstractMaterialState) = typeof(state.σ)
-
-# fallback for optional cache argument
-function get_cache(m::AbstractMaterial)
-    state = initial_material_state(m)
-    stress_type = get_stress_type(state)
-    T = eltype(stress_type)
-    M = Tensors.n_components(Tensors.get_base(stress_type))
-    cache = PlaneStressCache(Vector{T}(undef,M), Matrix{T}(undef,M,M), Vector{T}(undef,M))
-    return cache
-end

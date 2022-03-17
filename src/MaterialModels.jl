@@ -86,6 +86,7 @@ include("CohesiveMaterials/XuNeedleman.jl")
 
 include("nonlinear_solver.jl")
 include("wrappers.jl")
+include("iteration_caches.jl")
 
 export initial_material_state, get_cache
 export material_response
