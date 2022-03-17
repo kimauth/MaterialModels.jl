@@ -45,7 +45,7 @@ function material_response(
     Δε::AbstractTensor{2,d,T},
     state::AbstractMaterialState,
     Δt = nothing;
-    cache =  get_cache(m),
+    cache::Union{Any, Nothing} = nothing, #get_cache(m), #TODO: create AbstractCache type
     options = Dict{Symbol, Any}(),
     ) where {d, T}
     
@@ -57,11 +57,11 @@ function material_response(
     #zero_idxs = get_zero_indices(dim, Δε_3D)
     nonzero_idxs = get_nonzero_indices(dim, Δε_3D)
     
-    for i in 1:max_iter
+    for _ in 1:max_iter
         σ, ∂σ∂ε, temp_state = material_response(m, Δε_3D, state, Δt; cache=cache, options=options)
         σ_mandel = _tomandel_sarray(dim, σ)
         if norm(σ_mandel) < tol
-            ∂σ∂ε_2D = fromvoigt(SymmetricTensor{4,d}, inv(inv(tovoigt(∂σ∂ε))[nonzero_idxs, nonzero_idxs]))
+            ∂σ∂ε_2D = fromvoigt(SymmetricTensor{4,d}, inv(inv(tovoigt(∂σ∂ε))[nonzero_idxs, nonzero_idxs])) #TODO: Maybe solve this with static arrays aswell?
             return reduce_dim(σ, dim), ∂σ∂ε_2D, temp_state
         end
         J = _tomandel_sarray(dim, ∂σ∂ε)
@@ -70,16 +70,6 @@ function material_response(
         Δε_3D = Δε_3D + Δε_correction
     end
     error("Not converged. Could not find plane stress state.")
-end
-
-function testaa()
-    m = LinearElastic(E=200e3, ν=0.3)
-
-    state = initial_material_state(m)
-
-    ε = rand(SymmetricTensor{2,1})
-
-    @time material_response(UniaxialStress(), m, ε, state)
 end
 
 function _tomandel_sarray(::PlaneStress, A::SymmetricTensor{2, 3}) 
@@ -124,23 +114,3 @@ get_zero_indices(::UniaxialStress{1}, ::SymmetricTensor{2,3}) = collect(2:6) # f
 get_nonzero_indices(::UniaxialStress{1}, ::SymmetricTensor{2,3}) = [1] # for voigt/mandel format, do not use on tensor data!
 get_zero_indices(::UniaxialStress{1}, ::Tensor{2,3}) = collect(2:9) # for voigt/mandel format, do not use on tensor data!
 get_nonzero_indices(::UniaxialStress{1}, ::Tensor{2,3}) = [1] # for voigt/mandel format, do not use on tensor data!
-
-# fallback in case there is no cache defined
-struct PlaneStressCache{TF, TDF, TX}
-    F::TF
-    DF::TDF
-    x_f::TX
-end
-
-# generic fallback, Materials without field σ need to define it
-get_stress_type(state::AbstractMaterialState) = typeof(state.σ)
-
-# fallback for optional cache argument
-function get_cache(m::AbstractMaterial)
-    state = initial_material_state(m)
-    stress_type = get_stress_type(state)
-    T = eltype(stress_type)
-    M = Tensors.n_components(Tensors.get_base(stress_type))
-    cache = PlaneStressCache(Vector{T}(undef,M), Matrix{T}(undef,M,M), Vector{T}(undef,M))
-    return cache
-end
