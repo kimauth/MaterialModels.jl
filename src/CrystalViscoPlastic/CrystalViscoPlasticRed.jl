@@ -150,7 +150,8 @@ end
 # compute other state variables based on μ
 function get_state_vars(μ::SVector{S,Tμ}, Δε::SymmetricTensor{2,3,Tε}, mat::CrystalViscoPlasticRed{S}, material_state::CrystalViscoPlasticRedState{dim, T, M, S}) where {Tμ, Tε, dim, T, M, S}
     σ_trial = material_state.σ + mat.Eᵉ ⊡ Δε
-    sign_τ_red_trial = [sign(σ_trial ⊡ mat.MS[i] - material_state.α[i]) for i=1:S]
+    τ_trial = map(ms -> σ_trial ⊡ ms, mat.MS)
+    sign_τ_red_trial = sign.(τ_trial - material_state.α)
     temp_sum_σ = zero(SymmetricTensor{2,3})
     κ = MVector{S, Tμ}(undef)
     α = MVector{S, promote_type(Tμ, Tε)}(undef)
