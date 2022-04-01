@@ -82,6 +82,8 @@ include("FiniteStrain/neohook.jl")
 include("FiniteStrain/yeoh.jl")
 include("FiniteStrain/stvenant.jl")
 
+include("CohesiveMaterials/XuNeedleman.jl")
+
 include("nonlinear_solver.jl")
 include("wrappers.jl")
 
@@ -95,4 +97,9 @@ export AbstractDim, OneD, UniaxialStrain, UniaxialStress, PlaneStrain, PlaneStre
 export ∂S∂C, ∂S∂E, ∂Pᵀ∂F
 
 export NeoHook, Yeoh, StVenant
+
+export XuNeedleman
+export xu_needleman_Φₙ, xu_needleman_Φₜ, xu_needleman_σₘₐₓ, xu_needleman_τₘₐₓ
+export XuNeedlemanState
+
 end
