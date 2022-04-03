@@ -76,7 +76,7 @@ include("LinearElastic.jl")
 include("Plastic.jl")
 include("CrystalViscoPlastic/slipsystems.jl")
 include("CrystalViscoPlastic/CrystalViscoPlastic.jl")
-include("CrystalViscoPlastic/CrystalViscoPlasticRed.jl")
+# include("CrystalViscoPlastic/CrystalViscoPlasticRed.jl")
 
 include("FiniteStrain/neohook.jl")
 include("FiniteStrain/yeoh.jl")
