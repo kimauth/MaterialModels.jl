@@ -59,82 +59,49 @@ end
 Base.zero(::Type{CrystalViscoPlasticRedState{dim,T,M,S}}) where {dim,T,M,S} = CrystalViscoPlasticRedState{dim,T,M,S}(zero(SymmetricTensor{2,dim,T,M}), SVector{S,T}(zeros(T, S)), SVector{S,T}(zeros(T, S)), SVector{S,T}(zeros(T, S)))
 initial_material_state(::CrystalViscoPlasticRed{S}) where S = zero(CrystalViscoPlasticRedState{3,Float64,6,S})
 
-function get_cache(m::CrystalViscoPlasticRed)
-    state = initial_material_state(m)
-    # it doesn't actually matter which state and strain step we use here,
-    # f is overwritten in the constitutive driver before being used.
-    f(r_vector, x_vector) = vector_residual!(((x)->MaterialModels.residuals(x, m, state, zero(SymmetricTensor{2,3}), 1.0)), r_vector, x_vector, m)
-    v_cache = Vector{Float64}(undef, get_n_scalar_equations(m))
-    cache = NLsolve.OnceDifferentiable(f, v_cache, v_cache; autodiff = :forward)
-    return cache
-end
-
-# constitutive driver operates in 3D, so these can always be 3D
-# TODO: Should Residuals have a Type Parameter N for the number of scalar equations?
-struct ResidualsCrystalViscoPlasticRed{S, T}
-    μ::SVector{S, T}
-end
-
 get_n_scalar_equations(::CrystalViscoPlasticRed{S}) where S = S
-Tensors.get_base(::Type{CrystalViscoPlasticRed{S}}) where S = ResidualsCrystalViscoPlasticRed{S} # needed for frommandel
 
-function Tensors.tomandel!(v::Vector{T}, r::ResidualsCrystalViscoPlasticRed{S, T}) where {S, T}
-    v[1:S] = view(r.μ, :)
-    return v
-end
+function material_response(
+    m::MaterialModels.CrystalViscoPlasticRed{S},
+    Δε::SymmetricTensor{2,3,T,6},
+    state::MaterialModels.CrystalViscoPlasticRedState{3},
+    Δt=1.0;
+    cache = nothing,
+    options = NamedTuple{}(),
+) where {S, T}
 
-function Tensors.frommandel(::Type{ResidualsCrystalViscoPlasticRed{S}}, v::AbstractVector{T}) where {S, T}
-    μ = SVector{S,T}(view(v, 1:S))
-    return ResidualsCrystalViscoPlasticRed(μ)
-end
-
-function material_response(m::CrystalViscoPlasticRed{S}, Δε::SymmetricTensor{2,3,T,6}, state::CrystalViscoPlasticRedState{3},
-    Δt=1.0; cache=get_cache(m), options::Dict{Symbol, Any} = Dict{Symbol, Any}()) where {S, T}
-
-    # set the current residual function that depends only on the variables
-    f(r_vector, x_vector) = vector_residual!((x->residuals(x,m,state,Δε,Δt)), r_vector, x_vector, m)
-    update_cache!(cache, f)
-    # initial guess
-    σ_trial = state.σ + m.Eᵉ ⊡ Δε
-    x0 = ResidualsCrystalViscoPlasticRed(state.μ)
-    # convert initial guess to vector
-    tomandel!(cache.x_f, x0)
-    # solve for variables x
-    nlsolve_options = get(options, :nlsolve_params, Dict{Symbol, Any}(:method=>:newton))
-    haskey(nlsolve_options, :method) || merge!(nlsolve_options, Dict{Symbol, Any}(:method=>:newton)) # set newton if the user did not supply another method
-    result = NLsolve.nlsolve(cache, cache.x_f; nlsolve_options...)
-    
-    if result.f_converged
-        x_mandel = result.zero::Vector{T}
-        x = frommandel(ResidualsCrystalViscoPlasticRed{S}, x_mandel)
-        # compute other state variables
-        σ, κ, α = get_state_vars(x.μ, Δε, m, state)
-        ############################################
-        # tangent computation
-        ∂R∂x = cache.DF
-        f2(r_vector, x_vector) = vector_residual!((Δε->residuals(x,m,state,Δε,Δt)), r_vector, x_vector, Δε)
-        # lucky coincidence that we can reuse the buffers here
-        tomandel!(view(cache.x_f, 1:6), Δε)
-        ∂R∂ε = ForwardDiff.jacobian(f2, cache.F, view(cache.x_f, 1:6)) # ∂R∂ε = ∂R∂Δε
-        ∂X∂ε = -inv(∂R∂x)*∂R∂ε 
-        # in this case X is only μ
-        ∂σ∂ε = m.Eᵉ
+    R(μ) = residuals(μ, m, state, Δε, Δt)
+    solver_result = solve(R, state.μ; options...)
+    if !isnothing(solver_result) # converged
+        μ, ∂R∂μ = solver_result
+        σ, κ, α = MaterialModels.get_state_vars(μ, Δε, m, state)
+        # jacobian computation
+        ∂R∂ε = MVector{S, typeof(Δε)}(undef)
         for i=1:S
-            ∂μᵢ∂ε = frommandel(SymmetricTensor{2,3}, ∂X∂ε[i,:])
-            # we've already done almost all the computations we need here - can they be reused?
-            ∂σ∂μᵢ = -m.Eᵉ ⊡ m.MS[i]*sign(σ ⊡ m.MS[i] - α[i])
-            ∂σ∂ε += ∂σ∂μᵢ ⊗ ∂μᵢ∂ε
+            ∂R∂ε[i] = gradient(Δε->residuals(μ, m, state, Δε, Δt)[i], Δε)
         end
-        return σ, ∂σ∂ε, CrystalViscoPlasticRedState(σ, κ, α, x.μ)
+        ∂R∂μ_inv = inv(∂R∂μ)
+        dσdε = m.Eᵉ
+        for i=1:S
+            ∂σ∂μᵢ = - m.Eᵉ ⊡ m.MS[i]*sign(σ ⊡ m.MS[i] - α[i])
+            ∂μᵢ∂ε = - sum(∂R∂μ_inv[i,:] .* ∂R∂ε)
+            dσdε += ∂σ∂μᵢ ⊗ ∂μᵢ∂ε
+        end
+        return σ, dσdε, MaterialModels.CrystalViscoPlasticRedState(σ, κ, α, μ)
     else
         error("Material model not converged. Could not find material state.")
     end
 end
 
 # for a reduced equation system, we need to be able to do automatic differentiation according to vars and to Δε
-function residuals(vars::ResidualsCrystalViscoPlasticRed{S,Tv}, mat::CrystalViscoPlasticRed{S}, material_state::CrystalViscoPlasticRedState{3}, Δε::SymmetricTensor{2,3,Tε}, Δt) where {S,Tv,Tε}
-    T = promote_type(Tv, Tε)
-    μ=vars.μ
+function residuals(
+    μ::SVector{S, Tμ},
+    mat::CrystalViscoPlasticRed{S},
+    material_state::CrystalViscoPlasticRedState{3},
+    Δε::SymmetricTensor{2,3,Tε},
+    Δt) where {S,Tμ,Tε}
+
+    T = promote_type(Tμ, Tε)
     
     σ, κ, α = get_state_vars(μ, Δε, mat, material_state)
     Rμ = MVector{S, T}(undef)
@@ -144,7 +111,7 @@ function residuals(vars::ResidualsCrystalViscoPlasticRed{S,Tv}, mat::CrystalVisc
         Rμ[i] = Δt*(((Φ+abs(Φ))/2)/mat.σ_c)^mat.m - mat.t_star*μ[i]
     end
         
-    return  ResidualsCrystalViscoPlasticRed(SVector{S,T}(Rμ))
+    return SVector{S,T}(Rμ)
 end
 
 # compute other state variables based on μ
@@ -163,4 +130,3 @@ function get_state_vars(μ::SVector{S,Tμ}, Δε::SymmetricTensor{2,3,Tε}, mat:
     σ = σ_trial - mat.Eᵉ ⊡ temp_sum_σ
     return σ, SVector{S,Tμ}(κ), SVector{S,promote_type(Tμ,Tε)}(α)
 end
-
