@@ -1,22 +1,6 @@
-# # generic fallback, probably slow. TODO: can we have a fast version of this?
-# # Is a macro more suitable here?
-# function Tensors.tomandel!(v::Vector{T}, r::Residuals) where T
-#     # TODO check for length of v
-#     start = 1
-#     for fn in fieldnames(typeof(r))
-#         start = _set_mandel_values!(v, getfield(r, fn), start)
-#     end
-#     return v
-# end
-
-# function _set_mandel_values!(v::Vector{T}, r::SymmetricTensor{order, dim, T, M}, start::Int) where {order, dim, T, M}
-#     tomandel!(v[start:end], r)
-#     return start + M
-# end
-# function _set_mandel_values!(v::Vector{T}, r::T, start::Int) where T
-#     v[start] = r
-#     return start + 1
-# end
+##############################################
+# NLsolve.jl related functionality
+##############################################
 
 function vector_residual!(R::Function, r_vector::Vector{T}, x_vector::Vector{T}, m) where T
     # construct residuals with type T
@@ -46,3 +30,36 @@ function update_cache!(cache, f)
     cache.fdf = fj_forwarddiff!
     return cache
 end
+
+##############################################
+# Newton solver for isbits residuals
+##############################################
+
+"""
+    solve(f::Function, x::Union{Real, SVector}; max_iter=100, tol=1e-8)
+
+Find a solution `x` such that `f(x) = 0` by Newton-Raphson iterations.
+Returns `Tuple(x, dfdx)` upon convergence, else returns `nothing`.
+
+Keyword arguments:
+- `max_iter`: Maximum number of iterations.
+- `tol`: Tolerance for convergence. The solution is converged if `norm(f(x)) < tol`.
+
+!!! info
+    Currently only `SVector` and scalar type residuals are solvable. It could be extended to
+    `Tensor` residuals in a straight forward manner. 
+"""
+function solve(f::Function, x::Union{Real, SVector}; max_iter=100, tol=1e-8)
+    for i = 1:max_iter
+        r = f(x)
+        drdx = auto_diff(f, x)
+        if norm(r) < tol
+            return (x, drdx)
+        end
+        x -= drdx \ r
+    end
+    return nothing
+end
+
+auto_diff(f::Function, x::Real) = ForwardDiff.derivative(f, x)
+auto_diff(f::Function, x::SVector) = ForwardDiff.jacobian(f, x)

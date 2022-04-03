@@ -5,6 +5,7 @@ using StaticArrays
 using JLD2
 
 include("test_utils.jl")
+include("test_newton_solver.jl")
 include("test_linear_elastic.jl")
 include("test_plastic.jl")
 include("test_crystal_visco_plastic.jl")
