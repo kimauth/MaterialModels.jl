@@ -76,7 +76,6 @@ include("LinearElastic.jl")
 include("Plastic.jl")
 include("CrystalViscoPlastic/slipsystems.jl")
 include("CrystalViscoPlastic/CrystalViscoPlastic.jl")
-include("CrystalViscoPlastic/CrystalViscoPlasticRed.jl")
 
 include("FiniteStrain/neohook.jl")
 include("FiniteStrain/yeoh.jl")
@@ -101,5 +100,7 @@ export NeoHook, Yeoh, StVenant
 export XuNeedleman
 export xu_needleman_Φₙ, xu_needleman_Φₜ, xu_needleman_σₘₐₓ, xu_needleman_τₘₐₓ
 export XuNeedlemanState
+
+export solve
 
 end
