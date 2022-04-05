@@ -60,8 +60,12 @@ Construct cache object for iteratively solving non-linear material models.
 
 For material models which require an iterative solution procedure, it is recommended to allocate storage for the iterative solver only once and reuse it for all material points.
 When multithreading is used, each threads needs its own cache.
+
+Returns `nothing` for materials that don't need a cache.
 """
-function get_cache end
+function get_cache(::AbstractMaterial)
+    return nothing
+end
 """
     update_cache!(cache::OnceDifferentiable, f)
 

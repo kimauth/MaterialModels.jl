@@ -6,6 +6,9 @@
     # initial state
     state = initial_material_state(m)
 
+    test_cache = get_cache(m)
+    @test isnothing(test_cache)
+
     # constitutive driver
     ε = rand(SymmetricTensor{2,3})
     σ, ∂σ∂ε, temp_state = material_response(m, ε, state)
