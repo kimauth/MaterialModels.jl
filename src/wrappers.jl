@@ -6,11 +6,13 @@ struct PlaneStrain    <: AbstractDim end # 2D plane strain state
 struct PlaneStress    <: AbstractDim end # 2D plane stress state
 struct ThreeD         <: AbstractDim end # 3D
 
-getdim(::UniaxialStrain) = 1
-getdim(::UniaxialStress) = 1
-getdim(::PlaneStrain) = 2
-getdim(::PlaneStress) = 2
-getdim(::ThreeD) = 3
+getdim(::Type{UniaxialStrain}) = 1
+getdim(::Type{UniaxialStress}) = 1
+getdim(::Type{PlaneStrain}) = 2
+getdim(::Type{PlaneStress}) = 2
+getdim(::Type{ThreeD}) = 3
+
+getdim(d::T) where T<:AbstractDim = getdim(typeof(d))
 
 reduce_dim(A::Tensor{1,3}, d::AbstractDim) = Tensor{1,getdim(d)}(i->A[i])
 reduce_dim(A::Tensor{2,3}, d::AbstractDim) = Tensor{2,getdim(d)}((i,j)->A[i,j])
