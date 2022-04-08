@@ -33,6 +33,8 @@ end
 
 struct LinearElasticState <: AbstractMaterialState end
 
+strainmeasure(::LinearElastic) = EngineeringStrain()
+
 # define which state belongs to the material
 initial_material_state(::LinearElastic) = LinearElasticState()
 

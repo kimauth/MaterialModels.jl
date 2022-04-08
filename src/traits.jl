@@ -3,6 +3,7 @@ struct GreenLagrange <: StrainMeasure end
 struct RightCauchyGreen <: StrainMeasure end
 struct DeformationGradient <: StrainMeasure end
 struct VelocityGradient <: StrainMeasure end
+struct EngineeringStrain <: StrainMeasure end
 
 strainmeasure(m::AbstractMaterial) = error("Strain measure for material $m not defined ")
 
@@ -56,12 +57,14 @@ end
 Function for automatically converting the output stress and tangent from any material, to any 
 other stress/tangent defined by `output_tangent` (dSdC, dPᵀdF etc.) 
 """
-
 function material_response(output_tangent::AbstractTangent, m::AbstractMaterial, F::Tensor{2}, state::AbstractMaterialState, Δt::Float64 = 0.0; cache=nothing, options=nothing)
-    straintype = strainmeasure(m);
+    material_response(ThreeD(), output_tangent, m, F, state, Δt; cache=cache, options=options)
+end
 
+function material_response(dim::AbstractDim, output_tangent::AbstractTangent, m::AbstractMaterial, F::Tensor{2}, state::AbstractMaterialState, Δt::Float64 = 0.0; cache=nothing, options=nothing)
+    straintype = strainmeasure(m);
     strain = compute_strain(F, straintype)
-    stress, strain, newstate = material_response(m, strain, state, Δt, cache=cache, options=options)
+    stress, strain, newstate = material_response(dim, m, strain, state, Δt, cache=cache, options=options)
     out_stress, out_tangent = transform_tangent(stress, strain, F, default_tangent(straintype), output_tangent)
 
     return out_stress, out_tangent, newstate
