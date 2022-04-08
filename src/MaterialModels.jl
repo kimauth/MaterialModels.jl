@@ -96,7 +96,7 @@ export material_response
 export AbstractMaterial, AbstractMaterialState
 export LinearElastic, Plastic, CrystalViscoPlastic
 export LinearElasticState, PlasticState, CrystalViscoPlasticState
-export AbstractDim, OneD, UniaxialStrain, UniaxialStress, PlaneStrain, PlaneStress
+export AbstractDim, UniaxialStrain, UniaxialStress, PlaneStrain, PlaneStress, ThreeD
 export ∂S∂C, ∂S∂E, ∂Pᵀ∂F
 
 export NeoHook, Yeoh, StVenant

@@ -1,72 +1,94 @@
-abstract type AbstractDim{dim} end
+abstract type AbstractDim end
 
-struct Dim{dim} <: AbstractDim{dim} end # generic
-struct UniaxialStrain{dim} <: AbstractDim{dim} end # 1D uniaxial strain state
-struct UniaxialStress{dim} <: AbstractDim{dim} end # 1D uniaxial stress state
-struct PlaneStrain{dim} <: AbstractDim{dim} end # 2D plane strain state
-struct PlaneStress{dim} <: AbstractDim{dim} end # 2D plane stress state
-# constructors without dim parameter
-UniaxialStrain() = UniaxialStrain{1}()
-UniaxialStress() = UniaxialStress{1}()
-PlaneStrain() = PlaneStrain{2}()
-PlaneStress() = PlaneStress{2}()
+struct UniaxialStrain <: AbstractDim end # 1D uniaxial strain state
+struct UniaxialStress <: AbstractDim end # 1D uniaxial stress state
+struct PlaneStrain    <: AbstractDim end # 2D plane strain state
+struct PlaneStress    <: AbstractDim end # 2D plane stress state
+struct ThreeD         <: AbstractDim end # 3D
 
-reduce_dim(A::Tensor{1,3}, ::AbstractDim{dim}) where dim = Tensor{1,dim}(i->A[i])
-reduce_dim(A::Tensor{2,3}, ::AbstractDim{dim}) where dim = Tensor{2,dim}((i,j)->A[i,j])
-reduce_dim(A::Tensor{4,3}, ::AbstractDim{dim}) where dim = Tensor{4,dim}((i,j,k,l)->A[i,j,k,l])
-reduce_dim(A::SymmetricTensor{2,3}, ::AbstractDim{dim}) where dim = SymmetricTensor{2,dim}((i,j)->A[i,j])
-reduce_dim(A::SymmetricTensor{4,3}, ::AbstractDim{dim}) where dim = SymmetricTensor{4,dim}((i,j,k,l)->A[i,j,k,l])
+getdim(::Type{UniaxialStrain}) = 1
+getdim(::Type{UniaxialStress}) = 1
+getdim(::Type{PlaneStrain}) = 2
+getdim(::Type{PlaneStress}) = 2
+getdim(::Type{ThreeD}) = 3
 
-increase_dim(A::Tensor{1,dim,T}) where {dim, T} = Tensor{1,3}(i->(i <= dim ? A[i] : zero(T)))
-increase_dim(A::Tensor{2,dim,T}) where {dim, T} = Tensor{2,3}((i,j)->(i <= dim && j <= dim ? A[i,j] : zero(T)))
-increase_dim(A::SymmetricTensor{2,dim,T}) where {dim, T} = SymmetricTensor{2,3}((i,j)->(i <= dim && j <= dim ? A[i,j] : zero(T)))
+getdim(d::T) where T<:AbstractDim = getdim(typeof(d))
 
-# restricted strain states
+reduce_dim(A::Tensor{1,3}, d::AbstractDim) = Tensor{1,getdim(d)}(i->A[i])
+reduce_dim(A::Tensor{2,3}, d::AbstractDim) = Tensor{2,getdim(d)}((i,j)->A[i,j])
+reduce_dim(A::Tensor{4,3}, d::AbstractDim) = Tensor{4,getdim(d)}((i,j,k,l)->A[i,j,k,l])
+reduce_dim(A::SymmetricTensor{2,3}, d::AbstractDim) = SymmetricTensor{2,getdim(d)}((i,j)->A[i,j])
+reduce_dim(A::SymmetricTensor{4,3}, d::AbstractDim) = SymmetricTensor{4,getdim(d)}((i,j,k,l)->A[i,j,k,l])
+
+increase_dim(A::Tensor{1,dim,T}) where {dim,T} = Tensor{1,3}(i->(i <= dim ? A[i] : zero(T)))
+increase_dim(A::Tensor{2,dim,T}) where {dim,T} = Tensor{2,3}((i,j)->(i <= dim && j <= dim ? A[i,j] : zero(T)))
+increase_dim(A::SymmetricTensor{2,dim,T}) where {dim,T} = SymmetricTensor{2,3}((i,j)->(i <= dim && j <= dim ? A[i,j] : zero(T)))
+
+# 3d materials pass through
 function material_response(
-    dim::Union{Dim{d}, UniaxialStrain{d}, PlaneStrain{d}},
+    ::ThreeD,
     m::AbstractMaterial,
-    Δε::AbstractTensor{2,d,T},
+    Δε::AbstractTensor{2,3,T},
     state::AbstractMaterialState,
     Δt = nothing;
     cache = nothing,
     options = Dict{Symbol, Any}(),
-    ) where {d,T}
+    ) where {T}
+
+    return material_response(m, Δε, state, Δt; cache=cache, options=options)
+
+end
+
+# restricted strain states
+function material_response(
+    dimstate::Union{UniaxialStrain, PlaneStrain},
+    m::AbstractMaterial,
+    Δε::AbstractTensor{2,dim,T},
+    state::AbstractMaterialState,
+    Δt = nothing;
+    cache = nothing,
+    options = Dict{Symbol, Any}(),
+    ) where {dim,T}
+
+    @assert(getdim(dimstate) == dim)
 
     Δε_3D = increase_dim(Δε)
     σ, dσdε, material_state = material_response(m, Δε_3D, state, Δt; cache=cache, options=options)
 
-    return reduce_dim(σ, dim), reduce_dim(dσdε, dim), material_state
+    return reduce_dim(σ, dimstate), reduce_dim(dσdε, dimstate), material_state
 end
 
 # restricted stress states
 function material_response(
-    dim::Union{UniaxialStress{d}, PlaneStress{d}},
+    dimstate::Union{UniaxialStress, PlaneStress},
     m::AbstractMaterial,
-    Δε::AbstractTensor{2,d,T},
+    Δε::AbstractTensor{2,dim,T},
     state::AbstractMaterialState,
     Δt = nothing;
     cache::Union{Any, Nothing} = nothing, #get_cache(m), #TODO: create AbstractCache type
     options = Dict{Symbol, Any}(),
-    ) where {d, T}
+    ) where {dim, T}
     
+    @assert(getdim(dimstate) == dim)
+
     tol = get(options, :plane_stress_tol, 1e-8)
     max_iter = get(options, :plane_stress_max_iter, 10)
 
     Δε_3D = increase_dim(Δε)
     
-    #zero_idxs = get_zero_indices(dim, Δε_3D)
-    nonzero_idxs = get_nonzero_indices(dim, Δε_3D)
+    #zero_idxs = get_zero_indices(dimstate, Δε_3D)
+    nonzero_idxs = get_nonzero_indices(dimstate, Δε_3D)
     
     for _ in 1:max_iter
         σ, ∂σ∂ε, temp_state = material_response(m, Δε_3D, state, Δt; cache=cache, options=options)
-        σ_mandel = _tomandel_sarray(dim, σ)
+        σ_mandel = _tomandel_sarray(dimstate, σ)
         if norm(σ_mandel) < tol
-            ∂σ∂ε_2D = fromvoigt(SymmetricTensor{4,d}, inv(inv(tovoigt(∂σ∂ε))[nonzero_idxs, nonzero_idxs])) #TODO: Maybe solve this with static arrays aswell?
-            return reduce_dim(σ, dim), ∂σ∂ε_2D, temp_state
+            ∂σ∂ε_2D = fromvoigt(SymmetricTensor{4,dim}, inv(inv(tovoigt(∂σ∂ε))[nonzero_idxs, nonzero_idxs])) #TODO: Maybe solve this with static arrays aswell?
+            return reduce_dim(σ, dimstate), ∂σ∂ε_2D, temp_state
         end
-        J = _tomandel_sarray(dim, ∂σ∂ε)
+        J = _tomandel_sarray(dimstate, ∂σ∂ε)
         Δε_temp = -inv(J)*σ_mandel
-        Δε_correction = _frommandel_sarray(dim, Δε_temp)
+        Δε_correction = _frommandel_sarray(dimstate, Δε_temp)
         Δε_3D = Δε_3D + Δε_correction
     end
     error("Not converged. Could not find plane stress state.")
@@ -105,12 +127,12 @@ end
 
 
 # out of plane / axis components for restricted stress cases
-get_zero_indices(::PlaneStress{2}, ::SymmetricTensor{2,3}) = [3, 4, 5] # for voigt/mandel format, do not use on tensor data!
-get_nonzero_indices(::PlaneStress{2}, ::SymmetricTensor{2,3}) = [1, 2, 6] # for voigt/mandel format, do not use on tensor data!
-get_zero_indices(::PlaneStress{2}, ::Tensor{2,3}) = [3, 4, 5, 7, 8] # for voigt/mandel format, do not use on tensor data!
-get_nonzero_indices(::PlaneStress{2}, ::Tensor{2,3}) = [1, 2, 6, 9] # for voigt/mandel format, do not use on tensor data!
+get_zero_indices(::PlaneStress, ::SymmetricTensor{2,3}) = [3, 4, 5] # for voigt/mandel format, do not use on tensor data!
+get_nonzero_indices(::PlaneStress, ::SymmetricTensor{2,3}) = [1, 2, 6] # for voigt/mandel format, do not use on tensor data!
+get_zero_indices(::PlaneStress, ::Tensor{2,3}) = [3, 4, 5, 7, 8] # for voigt/mandel format, do not use on tensor data!
+get_nonzero_indices(::PlaneStress, ::Tensor{2,3}) = [1, 2, 6, 9] # for voigt/mandel format, do not use on tensor data!
 
-get_zero_indices(::UniaxialStress{1}, ::SymmetricTensor{2,3}) = collect(2:6) # for voigt/mandel format, do not use on tensor data!
-get_nonzero_indices(::UniaxialStress{1}, ::SymmetricTensor{2,3}) = [1] # for voigt/mandel format, do not use on tensor data!
-get_zero_indices(::UniaxialStress{1}, ::Tensor{2,3}) = collect(2:9) # for voigt/mandel format, do not use on tensor data!
-get_nonzero_indices(::UniaxialStress{1}, ::Tensor{2,3}) = [1] # for voigt/mandel format, do not use on tensor data!
+get_zero_indices(::UniaxialStress, ::SymmetricTensor{2,3}) = collect(2:6) # for voigt/mandel format, do not use on tensor data!
+get_nonzero_indices(::UniaxialStress, ::SymmetricTensor{2,3}) = [1] # for voigt/mandel format, do not use on tensor data!
+get_zero_indices(::UniaxialStress, ::Tensor{2,3}) = collect(2:9) # for voigt/mandel format, do not use on tensor data!
+get_nonzero_indices(::UniaxialStress, ::Tensor{2,3}) = [1] # for voigt/mandel format, do not use on tensor data!
