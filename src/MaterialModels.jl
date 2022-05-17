@@ -38,6 +38,7 @@ abstract type StrainMeasure end
 Stores matrices, vectors etc. to avoid re-allcating memory each time the material routine is called.
 """
 abstract type AbstractCache end
+struct DefaultCache <: AbstractCache end
 
 """
     material_response(m::AbstractMaterial, Δε::SymmetricTensor{2,3}, state::AbstractMaterialState, Δt; cache, options)
@@ -70,7 +71,7 @@ When multithreading is used, each threads needs its own cache.
 Returns `nothing` for materials that don't need a cache.
 """
 function get_cache(::AbstractMaterial)
-    return nothing
+    DefaultCache() 
 end
 """
     update_cache!(cache::OnceDifferentiable, f)
@@ -80,9 +81,6 @@ Update the cache object with the residual function for the current time/load ste
 As the residual functions depend i.a. on the strain increment, the function and its jacobian need to be updated for every load step.
 """
 function update_cache! end
-
-struct DefaultCache <: AbstractCache end
-get_cache(::AbstractMaterial) = DefaultCache() #Fallback for materials that does need to allocate.
 
 include("traits.jl")
 include("LinearElastic.jl")
