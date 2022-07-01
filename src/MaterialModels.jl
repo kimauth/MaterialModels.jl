@@ -34,6 +34,12 @@ Defines the type of strain measure the a material uses, i.e Deformation gradient
 abstract type StrainMeasure end
 
 """
+    AbstractCache
+Stores matrices, vectors etc. to avoid re-allcating memory each time the material routine is called.
+"""
+abstract type AbstractCache end
+
+"""
     material_response(m::AbstractMaterial, Δε::SymmetricTensor{2,3}, state::AbstractMaterialState, Δt; cache, options)
 
 Compute the stress, stress tangent and state variables for the given strain increment `Δε` and previous state `state`.
@@ -64,7 +70,7 @@ When multithreading is used, each threads needs its own cache.
 Returns `nothing` for materials that don't need a cache.
 """
 function get_cache(::AbstractMaterial)
-    return nothing
+    nothing 
 end
 """
     update_cache!(cache::OnceDifferentiable, f)

@@ -28,7 +28,7 @@ function material_response(
     Δε::AbstractTensor{2,d,T},
     state::AbstractMaterialState,
     Δt = nothing;
-    cache = nothing,
+    cache = get_cache(m),
     options = Dict{Symbol, Any}(),
     ) where {d,T}
 
@@ -45,7 +45,7 @@ function material_response(
     Δε::AbstractTensor{2,d,T},
     state::AbstractMaterialState,
     Δt = nothing;
-    cache::Union{Any, Nothing} = nothing, #get_cache(m), #TODO: create AbstractCache type
+    cache =  get_cache(m),
     options = Dict{Symbol, Any}(),
     ) where {d, T}
     
