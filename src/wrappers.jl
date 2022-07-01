@@ -54,14 +54,17 @@ function material_response(
 
     Δε_3D = increase_dim(Δε)
     
-    #zero_idxs = get_zero_indices(dim, Δε_3D)
+    zero_idxs = get_zero_indices(dim, Δε_3D)
     nonzero_idxs = get_nonzero_indices(dim, Δε_3D)
     
     for _ in 1:max_iter
         σ, ∂σ∂ε, temp_state = material_response(m, Δε_3D, state, Δt; cache=cache, options=options)
         σ_mandel = _tomandel_sarray(dim, σ)
         if norm(σ_mandel) < tol
-            ∂σ∂ε_2D = fromvoigt(SymmetricTensor{4,d}, inv(inv(tovoigt(∂σ∂ε))[nonzero_idxs, nonzero_idxs])) #TODO: Maybe solve this with static arrays aswell?
+            #TODO: Do this with static arrays to avoid transforming to mandel
+            _∂σ∂ε = tomandel(∂σ∂ε)
+            _∂σ∂ε_mod = _∂σ∂ε[nonzero_idxs, nonzero_idxs] - _∂σ∂ε[nonzero_idxs, zero_idxs] * inv(_∂σ∂ε[zero_idxs, zero_idxs]) * _∂σ∂ε[zero_idxs,nonzero_idxs]
+            ∂σ∂ε_2D = frommandel(SymmetricTensor{4,d}, _∂σ∂ε_mod) 
             return reduce_dim(σ, dim), ∂σ∂ε_2D, temp_state
         end
         J = _tomandel_sarray(dim, ∂σ∂ε)
