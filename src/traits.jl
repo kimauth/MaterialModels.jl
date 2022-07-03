@@ -57,11 +57,11 @@ Function for automatically converting the output stress and tangent from any mat
 other stress/tangent defined by `output_tangent` (dSdC, dPᵀdF etc.) 
 """
 
-function material_response(output_tangent::AbstractTangent, m::AbstractMaterial, F::Tensor{2}, state::AbstractMaterialState, Δt::Float64 = 0.0; cache=nothing, options=nothing)
+function material_response(output_tangent::AbstractTangent, m::AbstractMaterial, F::Tensor{2}, state::AbstractMaterialState, args...; options=nothing)
     straintype = strainmeasure(m);
 
     strain = compute_strain(F, straintype)
-    stress, strain, newstate = material_response(m, strain, state, Δt, cache, options=options)
+    stress, strain, newstate = material_response(m, strain, state, args...; options=options)
     out_stress, out_tangent = transform_tangent(stress, strain, F, default_tangent(straintype), output_tangent)
 
     return out_stress, out_tangent, newstate
