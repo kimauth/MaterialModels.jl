@@ -61,7 +61,7 @@ function material_response(output_tangent::AbstractTangent, m::AbstractMaterial,
     straintype = strainmeasure(m);
 
     strain = compute_strain(F, straintype)
-    stress, strain, newstate = material_response(m, strain, state, Δt, cache=cache, options=options)
+    stress, strain, newstate = material_response(m, strain, state, Δt, cache, options=options)
     out_stress, out_tangent = transform_tangent(stress, strain, F, default_tangent(straintype), output_tangent)
 
     return out_stress, out_tangent, newstate

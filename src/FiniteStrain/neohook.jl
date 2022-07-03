@@ -33,7 +33,7 @@ function ψ(mp::NeoHook, C::SymmetricTensor{2,3})
 end
 
 function material_response(mp::NeoHook, C::SymmetricTensor{2,3}, state::NeoHookState = NeoHookState(), 
-                           Δt=nothing; cache=nothing, options=nothing)
+                           Δt=nothing, cache=nothing; options=nothing)
     invC = inv(C)
     J = sqrt(det(C))
     S = mp.μ*(one(SymmetricTensor{2,3}) - inv(C)) + mp.λ*log(J)*inv(C)
