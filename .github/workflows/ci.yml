@@ -23,6 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: julia -e 'using Pkg; Pkg.Registry.add(RegistrySpec(url = "https://github.com/KnutAM/knutamregistry.git"))'
+        shell: bash
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.julia-version }}
