@@ -22,10 +22,7 @@ jobs:
             julia-version: '1'
     steps:
       - uses: actions/checkout@v2
-      - uses: julia-actions/add-julia-registry@v1
-        with:
-          registry: KnutAM/knutamregistry
-          key: nokeyneededasregisopen
+      - run: julia -e 'using Pkg; Pkg.Registry.add(RegistrySpec(url = "https://github.com/KnutAM/knutamregistry.git"))'
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.julia-version }}
