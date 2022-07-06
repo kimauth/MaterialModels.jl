@@ -22,11 +22,11 @@ jobs:
             julia-version: '1'
     steps:
       - uses: actions/checkout@v2
-      - run: julia -e 'using Pkg; Pkg.Registry.add(RegistrySpec(url = "https://github.com/KnutAM/knutamregistry.git"))'
-        shell: bash
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.julia-version }}
+      - run: julia --color=yes --project=. -e 'using Pkg; Pkg.add("https://github.com/KnutAM/MaterialModelsBase.jl.git");'
+        shell: bash
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
       - uses: julia-actions/julia-processcoverage@v1
