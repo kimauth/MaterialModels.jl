@@ -1,4 +1,3 @@
-import Pkg; Pkg.add(Pkg.PackageSpec(url = "https://github.com/KnutAM/MaterialModelsBase.jl.git"))
 using MaterialModels
 using Test
 using Rotations

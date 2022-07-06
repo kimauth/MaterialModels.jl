@@ -22,6 +22,9 @@ jobs:
             julia-version: '1'
     steps:
       - uses: actions/checkout@v2
+      - uses: julia-actions/add-julia-registry@v1
+        with:
+          registry: KnutAM/knutamregistry
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.julia-version }}
