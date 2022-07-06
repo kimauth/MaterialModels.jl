@@ -35,7 +35,7 @@ function ψ(mp::Yeoh, C::SymmetricTensor{2,3})
 end
 
 function material_response(mp::Yeoh, C::SymmetricTensor{2,3}, state::YeohState = YeohState(), 
-                           Δt=nothing; cache=nothing, options=nothing)
+                           Δt=nothing, args...; options=nothing)
     invC=inv(C)
     detC=det(C); 
     J=sqrt(detC);

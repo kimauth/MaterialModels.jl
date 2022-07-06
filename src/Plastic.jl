@@ -48,7 +48,7 @@ end
 Base.zero(::Type{PlasticState{dim,T,M}}) where {dim,T,M} = PlasticState(zero(SymmetricTensor{2,dim,T,M}), zero(T), zero(SymmetricTensor{2,dim,T,M}), zero(T))
 initial_material_state(::Plastic) = zero(PlasticState{3,Float64,6})
 
-struct PlasticCache{T<:OnceDifferentiable} <: AbstractCache
+struct PlasticCache{T<:OnceDifferentiable} <: AbstractMaterialCache
     nlsolve_cache::T
 end
 
@@ -124,7 +124,7 @@ An associative flow rule and non-associative hardening rules are used. The evolu
 See [NLsolve documentation](https://github.com/JuliaNLSolvers/NLsolve.jl#common-options). By default the Newton solver will be used.
 """
 function material_response(m::Plastic, ε::SymmetricTensor{2,3,T,6}, state::PlasticState{3},
-    Δt=nothing; cache=get_cache(m), options::Dict{Symbol, Any} = Dict{Symbol, Any}()) where T
+    Δt=nothing, cache=get_cache(m), args...; options::Dict{Symbol, Any} = Dict{Symbol, Any}()) where T
 
     nlsolve_cache = cache.nlsolve_cache
 

@@ -11,7 +11,7 @@
 
     # elastic branch
     Δε = SymmetricTensor{2,3,Float64}((i,j) -> i==1 && j==1 ? 0.5ε11_yield : (i == j ? -0.5ε11_yield*m.ν : 0.0))
-    σ, ∂σ∂ε, temp_state = material_response(m, Δε, state; cache=cache)
+    σ, ∂σ∂ε, temp_state = material_response(m, Δε, state, nothing, cache)
     @test σ ≈ SymmetricTensor{2,3,Float64}((i,j) -> i==1 && j==1 ? 0.5ε11_yield*m.E : 0.0)
     @test ∂σ∂ε == m.Eᵉ
     @test temp_state.κ == 0.0
@@ -20,12 +20,12 @@
 
     # yield point
     Δε = Δε = SymmetricTensor{2,3,Float64}((i,j) -> i==1 && j==1 ? ε11_yield : (i == j ? -ε11_yield*m.ν : 0.0))
-    σ, ∂σ∂ε, temp_state = material_response(m, Δε, state; cache=cache)
+    σ, ∂σ∂ε, temp_state = material_response(m, Δε, state, nothing, cache)
     @test sqrt(3/2)*norm(dev(σ-temp_state.α)) ≈ m.σ_y
 
     # plastic branch
     Δε = Δε = SymmetricTensor{2,3,Float64}((i,j) -> i==1 && j==1 ? 2ε11_yield : (i == j ? -2ε11_yield*m.ν : 0.0))
-    σ, ∂σ∂ε, temp_state = material_response(m, Δε, state; cache=cache)
+    σ, ∂σ∂ε, temp_state = material_response(m, Δε, state, nothing, cache)
     @test sqrt(3/2)*norm(dev(σ-temp_state.α)) > m.σ_y
 end
 

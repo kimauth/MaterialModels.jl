@@ -65,8 +65,8 @@ function material_response(
     m::MaterialModels.CrystalViscoPlastic{S},
     Δε::SymmetricTensor{2,3,T,6},
     state::MaterialModels.CrystalViscoPlasticState{3},
-    Δt=1.0;
-    cache = nothing,
+    Δt=1.0,
+    args...;
     options = NamedTuple{}(),
 ) where {S, T}
 

@@ -2,11 +2,15 @@ module MaterialModels
 
 using Reexport
 @reexport using Tensors
+@reexport using MaterialModelsBase
 using NLsolve
 using Rotations
 import ForwardDiff
 import DiffResults
 using StaticArrays
+
+# Import functions to simplify overloading
+import MaterialModelsBase: material_response, initial_material_state, get_cache
 
 
 
@@ -17,14 +21,14 @@ Store material parameters here. It can also be used to store constant precompute
 Ideally, the name should be chosen according to the first author of the initial publication of a model. For every `Material` there should be a keyword constructor
 and a list of arguments in the docstrings. If possible, also include the reference to a publication.
 """
-abstract type AbstractMaterial end
+#abstract type AbstractMaterial end
 
 """
     AbstractMaterialState
 
 Store state variables here. For now, this should **not** be mutable, a new object should be constructed for every new state. (We can discuss if this is a good or a bad idea.)
 """
-abstract type AbstractMaterialState end
+#abstract type AbstractMaterialState end
 abstract type AbstractResiduals end
 
 """
@@ -37,7 +41,7 @@ abstract type StrainMeasure end
     AbstractCache
 Stores matrices, vectors etc. to avoid re-allcating memory each time the material routine is called.
 """
-abstract type AbstractCache end
+#abstract type AbstractCache end
 
 """
     material_response(m::AbstractMaterial, Δε::SymmetricTensor{2,3}, state::AbstractMaterialState, Δt; cache, options)
@@ -50,14 +54,14 @@ For non-continuum kind of material models, the interface should be similar with 
 This function signature must be the same for all material models, even if they don't require all arguments.
 
 """
-function material_response end
+#function material_response end
 
 """
     initial_material_state(::AbstractMaterial)
 
 Return the `MaterialState` that belongs to the given `Material` and is initialized with zeros. 
 """
-function initial_material_state end
+#function initial_material_state end
 
 """
     get_cache(m::AbstractMaterial)
@@ -69,9 +73,9 @@ When multithreading is used, each threads needs its own cache.
 
 Returns `nothing` for materials that don't need a cache.
 """
-function get_cache(::AbstractMaterial)
-    nothing 
-end
+#function get_cache(::AbstractMaterial)
+#    nothing 
+#end
 """
     update_cache!(cache::OnceDifferentiable, f)
 
@@ -94,15 +98,16 @@ include("FiniteStrain/stvenant.jl")
 include("CohesiveMaterials/XuNeedleman.jl")
 
 include("nonlinear_solver.jl")
-include("wrappers.jl")
+#include("wrappers.jl")
 
-export initial_material_state, get_cache
-export material_response
+#export initial_material_state, get_cache
+#export material_response
 
 export AbstractMaterial, AbstractMaterialState
 export LinearElastic, Plastic, CrystalViscoPlastic
 export LinearElasticState, PlasticState, CrystalViscoPlasticState
-export AbstractDim, OneD, UniaxialStrain, UniaxialStress, PlaneStrain, PlaneStress
+#export AbstractDim, OneD, UniaxialStrain, UniaxialStress, PlaneStrain, PlaneStress
+const AbstractDim = AbstractStressState
 export ∂S∂C, ∂S∂E, ∂Pᵀ∂F
 
 export NeoHook, Yeoh, StVenant

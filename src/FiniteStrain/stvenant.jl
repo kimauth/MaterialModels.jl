@@ -34,7 +34,7 @@ function ψ(mp::StVenant, C)
 end
 
 function material_response(mp::StVenant, C::SymmetricTensor{2,3}, state::StVenantState = StVenantState(), 
-                           Δt=nothing; cache=nothing, options=nothing)
+                           Δt=nothing, args...; options=nothing)
                            
     μ = mp.μ
     λ = mp.λ
