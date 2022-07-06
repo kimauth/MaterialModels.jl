@@ -25,6 +25,7 @@ jobs:
       - uses: julia-actions/add-julia-registry@v1
         with:
           registry: KnutAM/knutamregistry
+          key: nokeyneededasregisopen
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.julia-version }}
