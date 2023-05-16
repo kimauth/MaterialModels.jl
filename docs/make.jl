@@ -1,4 +1,4 @@
-using Documenter, MaterialModels
+using Documenter, MaterialModels, Tensors
 
 makedocs(
     sitename="MaterialModels.jl",  
