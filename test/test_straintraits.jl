@@ -7,13 +7,13 @@
     I = one(SymmetricTensor{2,3,Float64})
 
 
-    S, dSdC, state = material_response(∂S∂C(), mat, F, state, Δt)
+    S, dSdC, state = material_response(MaterialModels.∂S∂C(), mat, F, state, Δt)
 
-    Pᵀ, dPᵀdF, state = material_response(∂Pᵀ∂F(), mat, F, state, Δt)
+    Pᵀ, dPᵀdF, state = material_response(MaterialModels.∂Pᵀ∂F(), mat, F, state, Δt)
     @test Pᵀ == S⋅F'
     @test dPᵀdF == otimesu(F,I) ⊡ dSdC ⊡ otimesu(F',I) + otimesu(S,I)
 
-    S_E, dSdE, state = material_response(∂S∂E(), mat, F, state, Δt)
+    S_E, dSdE, state = material_response(MaterialModels.∂S∂E(), mat, F, state, Δt)
     @test S_E == S
     @test 2dSdC == dSdE
 
