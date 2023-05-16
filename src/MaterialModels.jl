@@ -1,7 +1,6 @@
 module MaterialModels
 
-using Reexport
-@reexport using Tensors
+using Tensors
 using NLsolve
 using Rotations
 import ForwardDiff

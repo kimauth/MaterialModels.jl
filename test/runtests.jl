@@ -1,4 +1,5 @@
 using MaterialModels
+using Tensors
 using Test
 using Rotations
 using StaticArrays
