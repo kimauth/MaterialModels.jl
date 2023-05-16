@@ -26,11 +26,11 @@ end
 strainmeasure(::StVenant) = RightCauchyGreen()
 
 function ψ(mp::StVenant, C)
-    μ = mp.μ
-    λ = mp.λ
-    Ic = tr(C) 
-    IIc = tr(det(C) * inv(C)')
-    return λ / 8 * (Ic - 3)^2 + μ / 4 * (Ic^2 - 2 * Ic - 2 * IIc + 3)
+    (; μ, λ) = mp
+    I = one(C)
+    E = (C - I)/2
+    psi = 1/2 * λ * tr(E)^2 + μ * E ⊡ E
+    return psi
 end
 
 function material_response(mp::StVenant, C::SymmetricTensor{2,3}, state::StVenantState = StVenantState(), 
