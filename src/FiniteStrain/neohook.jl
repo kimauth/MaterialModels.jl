@@ -26,7 +26,7 @@ end
 
 strainmeasure(::NeoHook) = RightCauchyGreen()
 
-function ψ(mp::NeoHook, C::SymmetricTensor{2,3})
+function elastic_strain_energy_density(mp::NeoHook, C::SymmetricTensor{2,3})
     J = sqrt(det(C))
     I = tr(C)
     return mp.μ/2 * (I-3) - mp.μ*log(J) + mp.λ/2 * log(J)^2

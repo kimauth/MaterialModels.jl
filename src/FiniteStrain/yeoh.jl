@@ -28,7 +28,7 @@ end
 
 strainmeasure(::Yeoh) = RightCauchyGreen()
 
-function ψ(mp::Yeoh, C::SymmetricTensor{2,3})
+function elastic_strain_energy_density(mp::Yeoh, C::SymmetricTensor{2,3})
     J = sqrt(det(C))
     I = tr(C)
     return mp.μ/2 * (I-3) + mp.c₂*(I-3)^2 + mp.c₃*(I-3)^3 - mp.μ*log(J) + mp.λ/2 * log(J)^2

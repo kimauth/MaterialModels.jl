@@ -35,7 +35,7 @@ function check_tangents_AD(material::MaterialModels.AbstractMaterial,loading::Ve
     state = initial_material_state(material)
     for load in loading
         stress, tangent, state = material_response(material, load, state)
-        ∂²Ψ∂C², ∂Ψ∂C, _ =  hessian(C -> MaterialModels.ψ(material, C), load, :all)
+        ∂²Ψ∂C², ∂Ψ∂C, _ =  hessian(C -> elastic_strain_energy_density(material, C), load, :all)
         stress_AD = 2*∂Ψ∂C
         tangent_AD = 4*∂²Ψ∂C²
         @test stress ≈ stress_AD

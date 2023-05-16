@@ -55,3 +55,6 @@ function material_response(m::LinearElastic, ε::SymmetricTensor{2,3}, state::Li
     σ = m.Eᵉ ⊡ ε
     return σ, m.Eᵉ, state
 end
+
+# Strain energy density
+elastic_strain_energy_density(m::LinearElastic, ε) = 0.5 * ε ⊡ m.Eᵉ ⊡ ε

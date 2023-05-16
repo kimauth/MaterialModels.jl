@@ -25,7 +25,7 @@ end
 
 strainmeasure(::StVenant) = RightCauchyGreen()
 
-function ψ(mp::StVenant, C)
+function elastic_strain_energy_density(mp::StVenant, C)
     (; μ, λ) = mp
     I = one(C)
     E = (C - I)/2

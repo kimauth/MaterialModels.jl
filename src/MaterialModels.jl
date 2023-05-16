@@ -98,6 +98,7 @@ include("wrappers.jl")
 
 export initial_material_state, get_cache
 export material_response
+export elastic_strain_energy_density
 
 export AbstractMaterial, AbstractMaterialState
 export LinearElastic, Plastic, CrystalViscoPlastic
