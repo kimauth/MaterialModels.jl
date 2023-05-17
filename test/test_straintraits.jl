@@ -8,12 +8,12 @@
     C = tdot(F)
     E = (C - one(C))/2
 
-    S, dSdC, state = material_response(MaterialModels.∂S∂C(), mat, F, state, Δt)
+    S, dSdC, state = material_response(MaterialModels.∂S∂C, mat, F, state, Δt)
 
-    Pᵀ, dPᵀdF, state = material_response(MaterialModels.∂Pᵀ∂F(), mat, F, state, Δt)
+    Pᵀ, dPᵀdF, state = material_response(MaterialModels.∂Pᵀ∂F, mat, F, state, Δt)
     @test Pᵀ == S⋅F'
 
-    S_E, dSdE, state = material_response(MaterialModels.∂S∂E(), mat, F, state, Δt)
+    S_E, dSdE, state = material_response(MaterialModels.∂S∂E, mat, F, state, Δt)
     @test S_E == S
     @test 2dSdC == dSdE
 

@@ -23,7 +23,7 @@ function StVenant(; λ::T, μ::T) where T
     return StVenant(λ, μ)
 end
 
-strainmeasure(::StVenant) = RightCauchyGreen()
+native_tangent_type(::Type{StVenant}) = ∂S∂C
 
 function elastic_strain_energy_density(mp::StVenant, C)
     (; μ, λ) = mp
@@ -46,5 +46,3 @@ function material_response(mp::StVenant, C::SymmetricTensor{2,3}, state::StVenan
 
     return S, ∂S∂C, StVenantState()
 end
-
-

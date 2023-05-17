@@ -24,7 +24,7 @@ function NeoHook(; λ::T, μ::T) where T
     return NeoHook(λ, μ)
 end
 
-strainmeasure(::NeoHook) = RightCauchyGreen()
+native_tangent_type(::Type{NeoHook}) = ∂S∂C
 
 function elastic_strain_energy_density(mp::NeoHook, C::SymmetricTensor{2,3})
     J = sqrt(det(C))
