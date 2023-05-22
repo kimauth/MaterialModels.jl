@@ -21,6 +21,9 @@ end
 # Let's always supply a constructor with keyword arguments
 LinearElastic(;E::Float64, ν::Float64) = LinearElastic(E, ν)
 
+# compatibility with large strain framework
+native_tangent_type(::Type{LinearElastic}) = ∂σ∂ε
+
 function elastic_tangent_3D(E::T, ν::T) where T
     λ = E*ν / ((1 + ν) * (1 - 2ν))
     μ = E / (2(1 + ν))

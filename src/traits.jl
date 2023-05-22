@@ -3,6 +3,7 @@ struct GreenLagrange{T<:SymmetricTensor{2}} <: StrainMeasure; value::T; end
 struct RightCauchyGreen{T<:SymmetricTensor{2}} <: StrainMeasure; value::T; end
 struct DeformationGradient{T<:Tensor{2}} <: StrainMeasure; value::T; end
 struct VelocityGradient{T} <: StrainMeasure; value::T; end
+struct SmallStrain{T} <: StrainMeasure; value::T;  end
 
 strainmeasure(m::AbstractMaterial) = error("Strain measure for material $m not defined ")
 
@@ -10,11 +11,13 @@ abstract type StressMeasure end
 struct SecondPiolaKirchhoff{T<:SymmetricTensor{2}} <: StressMeasure; value::T; end
 struct FirstPiolaKirchhoff{T<:Tensor{2}} <: StressMeasure; value::T; end
 struct FirstPiolaKirchhoffTransposed{T<:Tensor{2}} <: StressMeasure; value::T; end
+struct TrueStress{T<:SymmetricTensor{2}} <: StressMeasure; value::T; end
 
 abstract type AbstractTangent end
 struct ∂S∂C{T<:SymmetricTensor{4}} <: AbstractTangent; value::T; end
 struct ∂S∂E{T<:SymmetricTensor{4}} <: AbstractTangent; value::T; end
 struct ∂Pᵀ∂F{T<:Tensor{4}} <: AbstractTangent; value::T; end
+struct ∂σ∂ε{T<:SymmetricTensor{4}} <: AbstractTangent; value::T; end
 
 """
     transform_strain(strain::::StrainMeasure, to::Type{StrainMeasure})
@@ -139,6 +142,8 @@ native_strain_type(::Type{M}) where M<:AbstractMaterial = _strain_type(native_ta
 native_stress_type(::Type{M}) where M<:AbstractMaterial = _stress_type(native_tangent_type(M))
 _strain_type(::Type{∂S∂C}) = RightCauchyGreen
 _stress_type(::Type{∂S∂C}) = SecondPiolaKirchhoff
+_strain_type(::Type{∂σ∂ε}) = SmallStrain
+_stress_type(::Type{∂σ∂ε}) = TrueStress
 
 # same strain type is compatible
 compatible_strain_measure(::Type{<:T}, ::Type{T}) where T = true
