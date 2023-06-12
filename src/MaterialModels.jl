@@ -82,6 +82,7 @@ function update_cache! end
 
 include("traits.jl")
 include("LinearElastic.jl")
+include("transverselyisotropic.jl")
 include("Plastic.jl")
 include("CrystalViscoPlastic/slipsystems.jl")
 include("CrystalViscoPlastic/CrystalViscoPlastic.jl")
