@@ -6,7 +6,7 @@
     G_LT = 5e3
     ν_LT = 0.4 
     ν_TT = 0.3
-    m = MaterialModels.TransverselyIsotropicEngineeringConstants(; E_L, E_T, G_LT, ν_LT, ν_TT)
+    m = TransverselyIsotropic(; E_L, E_T, G_LT, ν_LT, ν_TT)
 
     # initial state
     test_cache = get_cache(m)

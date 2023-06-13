@@ -4,9 +4,12 @@
     TransverselyIsotropic
 
 Transversely isotropic elasticity.
-This material model requires the defintion of a "fibre-direction" which indicates the normal to 
-the plane of symmetry....
+
+The material direction (normal to the symmetry plane) is specified in `TransverselyIsotropicState`,
+which kan be constructed with `initial_material_state(::TransverselyIsotropic, direction::Vec{3})`. The
+default value is [1.0, 0.0, 0.0].
 """
+
 struct TransverselyIsotropic <: MaterialModels.AbstractMaterial
     L⊥::Float64
     L₌::Float64
@@ -56,9 +59,21 @@ end
 Return the stress tensor and the stress tangent for the given strain ε such that
 
 ```math
-\\boldsymbol{\\sigma} = \\mathbf{E}^\\text{e} : \\boldsymbol{\\varepsilon} .
+\\boldsymbol{\\sigma} = \\mathbf{E} : \\boldsymbol{\\varepsilon}
 ```
-No `MaterialState` is needed for the stress computation, thus if a state is handed over to `material_response`, the same state is returned.
+
+where
+
+```math
+\\mathbf{E} = L \\boldsymbol{I} \\otimes \\boldsymbol{I} + [L - L][\\boldsymbol{I}\\otimes\\boldsymbol{A} + \\boldsymbol{A}\\otimes\\boldsymbol{I}]
++ [M - 4G +2G - 2L + L]\\boldsymbol{A}\\otimes\\boldsymbol{A} + 4[G-G]\\mathbf{A}
+```
+
+```math
+\\mathbf{A} = \\frac{1}{4} (\\boldsymbol{A} \\overbar{\\otimes} \\boldsymbol{I} + \\boldsymbol{A} \\underbar{\\otimes} \\boldsymbol{I} + \\boldsymbol{I} \\overbar{\\otimes} \\boldsymbol{A} + \\boldsymbol{I} \\underbar{\\otimes} \\boldsymbol{A}) \\
+\\boldsymbol{A} = \\boldsymbol{a} \\otimes \\boldsymbol{a}
+```
+
 """
 function material_response(m::TransverselyIsotropic, ε::SymmetricTensor{2,3}, state::TransverselyIsotropicState, Δt=nothing; cache=nothing, options=nothing)
     a3 = state.a3
