@@ -5,9 +5,9 @@
 
 Transversely isotropic elasticity.
 
-The material direction (normal to the symmetry plane) is specified in `TransverselyIsotropicState`,
-which kan be constructed with `initial_material_state(::TransverselyIsotropic, direction::Vec{3})`. The
-default value is [1.0, 0.0, 0.0].
+The material direction (the vector normal to the symmetry plane) is specified in `TransverselyIsotropicState`,
+which is constructed with `initial_material_state(::TransverselyIsotropic, direction::Vec{3})`. The
+default direction is [1.0, 0.0, 0.0].
 """
 
 struct TransverselyIsotropic <: MaterialModels.AbstractMaterial
@@ -71,8 +71,13 @@ where
 
 ```math
 \\mathbf{A} = \\frac{1}{4} (\\boldsymbol{A} \\overbar{\\otimes} \\boldsymbol{I} + \\boldsymbol{A} \\underbar{\\otimes} \\boldsymbol{I} + \\boldsymbol{I} \\overbar{\\otimes} \\boldsymbol{A} + \\boldsymbol{I} \\underbar{\\otimes} \\boldsymbol{A}) \\
+\\boldsymbol{A} + \\boldsymbol{a} \\otimes \\boldsymbol{a})
+```
+```math
 \\boldsymbol{A} = \\boldsymbol{a} \\otimes \\boldsymbol{a}
 ```
+
+and where \$\\boldsymbol{a}\$ is the vector normal to the plane of symmetry.
 
 """
 function material_response(m::TransverselyIsotropic, ε::SymmetricTensor{2,3}, state::TransverselyIsotropicState, Δt=nothing; cache=nothing, options=nothing)
@@ -81,8 +86,8 @@ function material_response(m::TransverselyIsotropic, ε::SymmetricTensor{2,3}, s
     A = symmetric( a3 ⊗ a3 )
     𝔸 = 0.25 * symmetric( otimesu(A,I) + otimesl(A,I) + otimesu(I,A) + otimesl(I,A) )
     
-    E = m.L⊥                                  * m.IoI     + 
-        2m.G⊥                                 * m.Iˢʸᵐ                 + 
+    E = m.L⊥                                  * m.IoI                + 
+        2m.G⊥                                 * m.Iˢʸᵐ               + 
         (m.L₌ - m.L⊥)                         * symmetric(I⊗A + A⊗I) + 
         (m.M₌ - 4m.G₌ + 2m.G⊥ - 2m.L₌ + m.L⊥) * symmetric(A ⊗ A)     + 
         4(m.G₌ - m.G⊥)                        * 𝔸

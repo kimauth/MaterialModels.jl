@@ -30,7 +30,7 @@
     end
     R = Tensor{2,3}( (i,j) -> base1[i] ⋅ base2[j] )
     ε45 = symmetric(R' ⋅ ε ⋅ R)
-    _, ∂σ∂ε45, _ = material_response(m, ε45, state0)
+    _, ∂σ∂ε45, _ = material_response(m, ε45, state)
     @test ∂σ∂ε45 ≈ ∂σ∂ε
 
     #Compare with engineering way of implementing transversely isotropic materials
@@ -42,10 +42,16 @@
              0         0        0        1/G_TT  0         0;
              0         0        0        0       1/G_LT    0;
              0         0        0        0       0         1/G_LT]
-
-    C2 = inv(fromvoigt(SymmetricTensor{4,3}, _C, offdiagscale=2.0))
-
-    @test ∂σ∂ε ≈ C2
+    
+    C = tovoigt(inv(∂σ∂ε), offdiagscale=2.0)
+    @test _C ≈ C
+    #=components = ((1,1),(2,2),(3,3),(2,3),(1,3),(1,2))
+    for (I,(i,j)) in pairs(components), (J,(k,l)) in pairs(components)
+        if !( _C[I,J] ≈ C[i,j,k,l] )
+            @show _C[I,J]  C[i,j,k,l]
+            @show (I,J) (i,j,k,l)
+        end
+    end=#
 end
 
 function get_TransverselyIsotropic_loading()
