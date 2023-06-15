@@ -8,6 +8,19 @@
     C = tdot(F)
     E = (C - one(C))/2
 
+    # strain transformations
+    _E = MaterialModels.transform_strain(RightCauchyGreen(C), GreenLagrange)
+    @test E ≈ _E.value
+    _E = MaterialModels.transform_strain(DeformationGradient(F), GreenLagrange)
+    @test E ≈ _E.value
+    _C = MaterialModels.transform_strain(GreenLagrange(E), RightCauchyGreen)
+    @test C ≈ _C.value
+    _C = MaterialModels.transform_strain(DeformationGradient(F), RightCauchyGreen)
+    @test C ≈ _C.value
+    # no transformation
+    _C = MaterialModels.transform_strain(RightCauchyGreen(C), RightCauchyGreen)
+    @test _C.value === C
+
     S, dSdC, state = material_response(MaterialModels.∂S∂C, mat, F, state, Δt)
 
     Pᵀ, dPᵀdF, state = material_response(MaterialModels.∂Pᵀ∂F, mat, F, state, Δt)

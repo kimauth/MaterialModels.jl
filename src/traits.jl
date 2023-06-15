@@ -37,7 +37,7 @@ function transform_strain(E::GreenLagrange{T}, ::Type{RightCauchyGreen}) where T
     C = 2E.value + one(T)
     return RightCauchyGreen(C)
 end
-function transform_strain(F::DeformationGradient, ::GreenLagrange)
+function transform_strain(F::DeformationGradient, ::Type{GreenLagrange})
     C = tdot(F.value)
     E = (C - one(C))/2
     return GreenLagrange(E)
