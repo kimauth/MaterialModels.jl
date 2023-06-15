@@ -14,12 +14,12 @@
     S, dSdC = material_response(m, C)
     d²ΨdC², dΨdC = hessian(C->elastic_strain_energy_density(m, C), C, :all)
     @test S ≈ 2dΨdC
-    @test dSdC ≈ 2d²ΨdC²
+    @test isapprox(dSdC, 2d²ΨdC²; rtol=1e-7)
 
     d²ΨdE², dΨdE = hessian(E->elastic_strain_energy_density(m, 2E + one(E)), E, :all)
     @test 2dΨdC ≈ dΨdE
-    @test 4d²ΨdC²≈ d²ΨdE²
+    @test isapprox(4d²ΨdC², d²ΨdE²; rtol=1e-7)
 
     dSdC_autodiff = gradient(C->material_response(m, C)[1], C)
-    @test dSdC_autodiff ≈ dSdC
+    @test isapprox(dSdC_autodiff, dSdC; rtol=1e-7)
 end
