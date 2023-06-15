@@ -37,7 +37,7 @@ function material_response(mp::NeoHook, C::SymmetricTensor{2,3}, state::NeoHookS
     invC = inv(C)
     J = sqrt(det(C))
     S = mp.μ*(one(SymmetricTensor{2,3}) - inv(C)) + mp.λ*log(J)*inv(C)
-    ∂S∂C = mp.λ*(invC⊗invC) + 2*(mp.μ-mp.λ*log(J))*otimesu(invC,invC)
+    ∂S∂C = 0.5*(mp.λ*(invC⊗invC) + 2*(mp.μ-mp.λ*log(J))*otimesu(invC,invC))
     ∂S∂C = symmetric(∂S∂C)
     return S, ∂S∂C, NeoHookState()
 end
