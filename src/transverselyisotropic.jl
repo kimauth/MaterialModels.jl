@@ -65,14 +65,14 @@ Return the stress tensor and the stress tangent for the given strain ε such tha
 where
 
 ```math
-\\mathbf{E} = L \\boldsymbol{I} \\otimes \\boldsymbol{I} + [L - L][\\boldsymbol{I}\\otimes\\boldsymbol{A} + \\boldsymbol{A}\\otimes\\boldsymbol{I}]
-+ [M - 4G +2G - 2L + L]\\boldsymbol{A}\\otimes\\boldsymbol{A} + 4[G-G]\\mathbf{A}
+\\mathbf{E} = L\\perp \\boldsymbol{I} \\otimes \\boldsymbol{I} + [L\\parallel - L\\perp][\\boldsymbol{I}\\otimes\\boldsymbol{A} + \\boldsymbol{A}\\otimes\\boldsymbol{I}]
++ [M\\parallel - 4G\\parallel + 2G\\perp - 2L\\parallel + L\\perp]\\boldsymbol{A}\\otimes\\boldsymbol{A} + 4[G\\parallel-G\\perp]\\mathbf{A}
 ```
 
 ```math
-\\mathbf{A} = \\frac{1}{4} (\\boldsymbol{A} \\overbar{\\otimes} \\boldsymbol{I} + \\boldsymbol{A} \\underbar{\\otimes} \\boldsymbol{I} + \\boldsymbol{I} \\overbar{\\otimes} \\boldsymbol{A} + \\boldsymbol{I} \\underbar{\\otimes} \\boldsymbol{A}) \\
-\\boldsymbol{A} + \\boldsymbol{a} \\otimes \\boldsymbol{a})
+\\mathbf{A} = \\frac{1}{4} (\\boldsymbol{A} \\overbar{\\otimes} \\boldsymbol{I} + \\boldsymbol{A} \\underbar{\\otimes} \\boldsymbol{I} + \\boldsymbol{I} \\overbar{\\otimes} \\boldsymbol{A} + \\boldsymbol{I} \\underbar{\\otimes} \\boldsymbol{A}) 
 ```
+
 ```math
 \\boldsymbol{A} = \\boldsymbol{a} \\otimes \\boldsymbol{a}
 ```
