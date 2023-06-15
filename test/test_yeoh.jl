@@ -22,4 +22,8 @@
 
     dSdC_autodiff = gradient(C->material_response(m, C)[1], C)
     @test isapprox(dSdC_autodiff, dSdC; rtol=1e-7)
+
+    # stress/ strain measures
+    @test MaterialModels.native_strain_type(Yeoh) == RightCauchyGreen
+    @test MaterialModels.native_stress_type(Yeoh) == MaterialModels.SecondPiolaKirchhoff
 end

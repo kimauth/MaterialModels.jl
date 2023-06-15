@@ -16,4 +16,8 @@
 
     dSdC_autodiff = gradient(C->material_response(m, C)[1], C)
     @test dSdC_autodiff ≈ dSdC
+
+    # stress/ strain measures
+    @test MaterialModels.native_strain_type(StVenant) == RightCauchyGreen
+    @test MaterialModels.native_stress_type(StVenant) == MaterialModels.SecondPiolaKirchhoff
 end
