@@ -1,14 +1,19 @@
-function get_StVenant_loading()
-    _C = range(0.0,  0.005, length=3)
-    C = [SymmetricTensor{2,3}((x + 1.0, x/10, 0.0, 1.0, 0.0, 1.0)) for x in _C]
-
-    return C
-end  
-
 @testset "StVenant" begin
-    m = StVenant(μ=6.8, λ=62.1)
+    m = StVenant(μ=1.0, λ=1.0)
 
-    loading = get_StVenant_loading()
-    check_jld2(m, loading, "StVenant")#, debug_print=false, OVERWRITE_JLD2=true)
-    check_tangents_AD(m,loading)
+    F = rand(Tensor{2,3})
+    C = tdot(F)
+    E = (C - one(C))/2
+
+    S, dSdC = material_response(m, C)
+    d²ΨdC², dΨdC = hessian(C->elastic_strain_energy_density(m, C), C, :all)
+    @test S ≈ 2dΨdC
+    @test dSdC ≈ 2d²ΨdC²
+
+    d²ΨdE², dΨdE = hessian(E->elastic_strain_energy_density(m, 2E + one(E)), E, :all)
+    @test 2dΨdC ≈ dΨdE
+    @test 4d²ΨdC²≈ d²ΨdE²
+
+    dSdC_autodiff = gradient(C->material_response(m, C)[1], C)
+    @test dSdC_autodiff ≈ dSdC
 end

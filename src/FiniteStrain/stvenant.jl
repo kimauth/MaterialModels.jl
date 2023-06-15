@@ -41,7 +41,7 @@ function material_response(mp::StVenant, C::SymmetricTensor{2,3}, state::StVenan
     I = one(SymmetricTensor{2,3})
 
     S = λ/2 * (tr(C) - 3)*I + μ*(C-I)
-    ∂S∂C = λ*(I⊗I) + μ*(otimesu(I,I) + otimesl(I,I))
+    ∂S∂C = 0.5*(λ*(I⊗I) + μ*(otimesu(I,I) + otimesl(I,I)))
     ∂S∂C = symmetric(∂S∂C)
 
     return S, ∂S∂C, StVenantState()

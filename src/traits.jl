@@ -39,14 +39,8 @@ transform_tangent(S, dSdC, F::Tensor{2}, from::∂S∂C, to::∂S∂E) = S, 2dSd
 transform_tangent(S, dSdC, F::Tensor{2,3,T}, from::∂S∂C, to::∂Pᵀ∂F) where T = begin 
     I = one(SymmetricTensor{2,3,T})
     Pᵀ = S⋅F'
-    dPᵀdF = otimesu(F,I) ⊡ dSdC ⊡ otimesu(F',I) + otimesu(S,I)
+    dPᵀdF = otimesl(S, I) + otimesu(I, F) ⊡ dSdC ⊡ (otimesl(I, F') + otimesu(F', I))
     return Pᵀ, dPᵀdF
-end
-transform_tangent(Pᵀ, dPᵀdF, F::Tensor{2}, from::∂Pᵀ∂F, to::∂S∂C) = begin
-    I = one(SymmetricTensor{2,3,T})
-    S = Pᵀ ⋅ inv(F')
-    dSdC = 2 * inv( otimesu(F,I) ) ⊡ (dPᵀdF - otimesu(S,I)) ⊡ inv( otimesu(F',I) )
-    return S, dSdC
 end
 #...
 
