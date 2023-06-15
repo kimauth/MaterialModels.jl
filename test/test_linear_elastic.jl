@@ -15,6 +15,9 @@
     @test σ == m.Eᵉ ⊡ ε
     @test ∂σ∂ε == m.Eᵉ
 
+    # stress/ strain measures for compatibility with finite strain system
+    @test MaterialModels.native_strain_type(LinearElastic) == SmallStrain
+    @test MaterialModels.native_stress_type(LinearElastic) == MaterialModels.TrueStress
 end
 
 function get_LinearElastic_loading()
