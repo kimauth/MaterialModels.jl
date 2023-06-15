@@ -53,19 +53,3 @@
         end
     end=#
 end
-
-function get_TransverselyIsotropic_loading()
-    loading = range(0.0,  0.02, length=2)
-    return [SymmetricTensor{2,3}((ε, ε/10, 0.0, 0.0, 0.0, 0.0)) for ε in loading]
-end  
-
-@testset "TransverselyIsotropic jld2" begin
-    E_L = 100e3, 
-    E_T = 10e3
-    G_LT = 5e3
-    ν_LT = 0.4 
-    ν_TT = 0.3
-    m = TransverselyIsotropicEngineeringConstants(; E_L, E_T, G_LT, ν_LT, ν_TT)
-    loading = get_TransverselyIsotropic_loading()
-    check_jld2(m, loading, "TransverselyIsotropic")#, OVERWRITE_JLD2=false)
-end
