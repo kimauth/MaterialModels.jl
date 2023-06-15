@@ -19,6 +19,13 @@ struct ∂S∂E{T<:SymmetricTensor{4}} <: AbstractTangent; value::T; end
 struct ∂Pᵀ∂F{T<:Tensor{4}} <: AbstractTangent; value::T; end
 struct ∂σ∂ε{T<:SymmetricTensor{4}} <: AbstractTangent; value::T; end
 
+# better with instances at top level
+# types in material_response call are ok if the type is infered from a typed argument, but not from Type{Tangent}
+∂Pᵀ∂F() = ∂Pᵀ∂F(zero(Tensor{4,3}))
+∂S∂C() = ∂S∂C(zero(SymmetricTensor{4,3}))
+∂S∂E() = ∂S∂E(zero(SymmetricTensor{4,3}))
+∂σ∂ε() = ∂σ∂ε(zero(SymmetricTensor{4,3}))
+
 """
     transform_strain(strain::::StrainMeasure, to::Type{StrainMeasure})
 
@@ -33,9 +40,9 @@ function transform_strain(C::RightCauchyGreen{T}, ::Type{GreenLagrange}) where T
     E = (C.value - one(T))/2
     return GreenLagrange(E)
 end
-function transform_strain(E::GreenLagrange{T}, ::Type{RightCauchyGreen}) where T
+function transform_strain(E::GreenLagrange{T}, ::Type{<:RightCauchyGreen}) where T
     C = 2E.value + one(T)
-    return RightCauchyGreen(C)
+    return RightCauchyGreen{T}(C)
 end
 function transform_strain(F::DeformationGradient, ::Type{GreenLagrange})
     C = tdot(F.value)
@@ -51,16 +58,16 @@ Some transformations require the deformation gradient which can be given by `str
 Transformations that do not require the deformation gradient ignore `strain`.
 """
 transform_stress_tangent(stress, tangent::T, ::Type{T}, ::StrainMeasure)  where T<:AbstractTangent = stress, tangent
-function transform_stress_tangent(S::SecondPiolaKirchhoff, dSdC::∂S∂C, ::Type{∂S∂E}, ::StrainMeasure)
+function transform_stress_tangent(S::SecondPiolaKirchhoff, dSdC::∂S∂C, ::Type{<:∂S∂E}, ::StrainMeasure)
     return S, ∂S∂E(2dSdC.value)
 end
-function transform_stress_tangent(S::SecondPiolaKirchhoff, dSdE::∂S∂E, ::Type{∂S∂C}, ::StrainMeasure)
+function transform_stress_tangent(S::SecondPiolaKirchhoff, dSdE::∂S∂E, ::Type{<:∂S∂C}, ::StrainMeasure)
     return S, ∂S∂C(0.5dSdE.value)
 end
 function transform_stress_tangent(
         S::SecondPiolaKirchhoff{T},
         dSdC::∂S∂C, 
-        ::Type{∂Pᵀ∂F},
+        ::Type{<:∂Pᵀ∂F},
         F::DeformationGradient
 ) where T
     I = one(T)
@@ -82,7 +89,7 @@ other stress/tangent defined by `output_tangent` (dSdC, dPᵀdF etc.)
 """
 # tangent transformation layer
 function material_response(
-        ::Type{output_tangent},
+        ::output_tangent,
         m::M,
         strain::StrainMeasure, # usually DeformationGradient(F)
         state,

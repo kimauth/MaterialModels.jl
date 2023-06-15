@@ -21,12 +21,12 @@
     _C = MaterialModels.transform_strain(RightCauchyGreen(C), RightCauchyGreen)
     @test _C.value === C
 
-    S, dSdC, state = material_response(MaterialModels.∂S∂C, mat, DeformationGradient(F), state, Δt)
+    S, dSdC, state = material_response(MaterialModels.∂S∂C(), mat, DeformationGradient(F), state, Δt)
 
-    Pᵀ, dPᵀdF, state = material_response(MaterialModels.∂Pᵀ∂F, mat, DeformationGradient(F), state, Δt)
+    Pᵀ, dPᵀdF, state = material_response(MaterialModels.∂Pᵀ∂F(), mat, DeformationGradient(F), state, Δt)
     @test Pᵀ == S⋅F'
 
-    S_E, dSdE, state = material_response(MaterialModels.∂S∂E, mat, DeformationGradient(F), state, Δt)
+    S_E, dSdE, state = material_response(MaterialModels.∂S∂E(), mat, DeformationGradient(F), state, Δt)
     @test S_E == S
     @test 2dSdC == dSdE
 
