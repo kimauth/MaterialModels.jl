@@ -99,21 +99,6 @@ function material_response(
     return out_stress.value, out_tangent.value, newstate
 end
 
-# TODO: needed?
-# allow call with tensor valued deformation gradient as default
-function material_response(
-        ::Type{output_tangent},
-        m::AbstractMaterial,
-        F::Tensor{2}, # by default this is a deformation gradient
-        state,
-        Δt::Float64 = 0.0;
-        cache=nothing,
-        options=nothing,
-    ) where {output_tangent}
-    material_response(output_tangent, m, DeformationGradient(F), state, Δt; cache, options)
-end
-
-
 # wrapped stress + tangent types for tangent transformation
 function _material_response( # internal as it returns typed stress/tangent
         m::M,
@@ -137,6 +122,11 @@ function _material_response( # internal as it returns typed stress/tangent
     return stress_type(stress), tangent_type(tangent), new_state
 end
     
+# transformation for strain energy
+function elastic_strain_energy_density(material::M, strain::StrainMeasure) where M
+    native_strain = transform_strain(strain, native_strain_type(M))
+    return elastic_strain_energy_density(material, native_strain.value)
+end
 
 native_strain_type(::Type{M}) where M<:AbstractMaterial = _strain_type(native_tangent_type(M))
 native_stress_type(::Type{M}) where M<:AbstractMaterial = _stress_type(native_tangent_type(M))

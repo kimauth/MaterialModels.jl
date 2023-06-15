@@ -46,4 +46,10 @@
     end
     dPᵀdF_autodiff = gradient(F->first_piola_kirchhoff_transposed(mat, F), F)
     @test dPᵀdF ≈ dPᵀdF_autodiff
+
+    # strain energy
+    @test elastic_strain_energy_density(mat, C) ==
+        elastic_strain_energy_density(mat, RightCauchyGreen(C)) ==
+        elastic_strain_energy_density(mat, GreenLagrange(E)) ==
+        elastic_strain_energy_density(mat, DeformationGradient(F))
 end 
