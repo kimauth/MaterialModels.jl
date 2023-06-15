@@ -8,8 +8,15 @@ Transversely isotropic elasticity.
 The material direction (the vector normal to the symmetry plane) is specified in `TransverselyIsotropicState`,
 which is constructed with `initial_material_state(::TransverselyIsotropic, direction::Vec{3})`. The
 default direction is [1.0, 0.0, 0.0].
-"""
 
+# Arguments
+- `ν::Float64`: Poisson's ratio
+- `E_L::Float64`: LongitudinalYoung's modulus
+- `E_T::Float64`: Transverse Young's modulus
+- `G_LT::Float64`: In-plane shear modulus
+- `ν_LT::Float64`: In-plane Poisson's ratio
+- `ν_TT::Float64`: Out-of-plane Poisson's ratio
+"""
 struct TransverselyIsotropic <: MaterialModels.AbstractMaterial
     L⊥::Float64
     L₌::Float64
