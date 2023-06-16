@@ -1,7 +1,7 @@
 
 
 """
-    TransverselyIsotropic
+    TransverselyIsotropic(; E_L, E_T, G_LT, ν_LT, ν_TT)
 
 Transversely isotropic elasticity.
 
@@ -10,7 +10,6 @@ which is constructed with `initial_material_state(::TransverselyIsotropic, direc
 default direction is [1.0, 0.0, 0.0].
 
 # Arguments
-- `ν::Float64`: Poisson's ratio
 - `E_L::Float64`: LongitudinalYoung's modulus
 - `E_T::Float64`: Transverse Young's modulus
 - `G_LT::Float64`: In-plane shear modulus
