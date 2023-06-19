@@ -105,6 +105,7 @@ export LinearElastic, TransverselyIsotropic, Plastic, CrystalViscoPlastic
 export LinearElasticState, TransverselyIsotropicState, PlasticState, CrystalViscoPlasticState
 export AbstractDim, UniaxialStrain, UniaxialStress, PlaneStrain, PlaneStress
 
+export DeformationGradient, RightCauchyGreen, GreenLagrange, SmallStrain
 export NeoHook, Yeoh, StVenant
 
 export XuNeedleman
