@@ -82,6 +82,7 @@ function update_cache! end
 
 include("traits.jl")
 include("LinearElastic.jl")
+include("transverselyisotropic.jl")
 include("Plastic.jl")
 include("CrystalViscoPlastic/slipsystems.jl")
 include("CrystalViscoPlastic/CrystalViscoPlastic.jl")
@@ -100,8 +101,8 @@ export material_response
 export elastic_strain_energy_density
 
 export AbstractMaterial, AbstractMaterialState
-export LinearElastic, Plastic, CrystalViscoPlastic
-export LinearElasticState, PlasticState, CrystalViscoPlasticState
+export LinearElastic, TransverselyIsotropic, Plastic, CrystalViscoPlastic
+export LinearElasticState, TransverselyIsotropicState, PlasticState, CrystalViscoPlasticState
 export AbstractDim, UniaxialStrain, UniaxialStress, PlaneStrain, PlaneStress
 
 export DeformationGradient, RightCauchyGreen, GreenLagrange, SmallStrain

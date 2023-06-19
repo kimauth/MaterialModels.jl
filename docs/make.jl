@@ -8,6 +8,7 @@ makedocs(
         "Interface" => "interface.md",
         "Materials" => [
             "materials/LinearElastic.md",
+            "materials/TransverselyIsotropic.md",
             "materials/Plastic.md",
             "materials/XuNeedleman.md",
         ]
