@@ -56,6 +56,9 @@ struct TransverselyIsotropicState <: MaterialModels.AbstractMaterialState
 end
 
 function initial_material_state(::TransverselyIsotropic, a3::Vec{3,Float64} = Vec{3,Float64}((1.0, 0.0, 0.0)))
+    if !(norm(a3) ≈ 1.0)
+        throw(ArgumentError("The material direction vector is not a unit vector (norm(a3) = $(norm(a3)))"))
+    end
     return TransverselyIsotropicState(a3)
 end
 

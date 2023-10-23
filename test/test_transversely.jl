@@ -45,6 +45,8 @@
     
     C = tovoigt(inv(∂σ∂ε), offdiagscale=2.0)
     @test _C ≈ C
+
+    @test_throws ArgumentError initial_material_state(m, Vec((-0.5, 0.0, 0.0)))
     #=components = ((1,1),(2,2),(3,3),(2,3),(1,3),(1,2))
     for (I,(i,j)) in pairs(components), (J,(k,l)) in pairs(components)
         if !( _C[I,J] ≈ C[i,j,k,l] )
