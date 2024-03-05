@@ -17,14 +17,17 @@ reduce_dim(A::Tensor{4,3}, ::AbstractDim{dim}) where dim = Tensor{4,dim}((i,j,k,
 reduce_dim(A::SymmetricTensor{2,3}, ::AbstractDim{dim}) where dim = SymmetricTensor{2,dim}((i,j)->A[i,j])
 reduce_dim(A::SymmetricTensor{4,3}, ::AbstractDim{dim}) where dim = SymmetricTensor{4,dim}((i,j,k,l)->A[i,j,k,l])
 
-increase_dim(A::Tensor{1,dim,T}) where {dim, T} = Tensor{1,3}(i->(i <= dim ? A[i] : zero(T)))
-increase_dim(A::Tensor{2,dim,T}) where {dim, T} = Tensor{2,3}((i,j)->(i <= dim && j <= dim ? A[i,j] : zero(T)))
-increase_dim(A::SymmetricTensor{2,dim,T}) where {dim, T} = SymmetricTensor{2,3}((i,j)->(i <= dim && j <= dim ? A[i,j] : zero(T)))
+increase_dim(A::Tensor{1,dim,T}, neutral=zero) where {dim, T} = Tensor{1,3}(i->(i <= dim ? A[i] : neutral(T)))
+increase_dim(A::Tensor{2,dim,T}, neutral=zero) where {dim, T} = Tensor{2,3}((i,j)->(i <= dim && j <= dim ? A[i,j] : (i==j ? neutral(T) : zero(T))))
+increase_dim(A::SymmetricTensor{2,dim,T}, neutral=zero) where {dim, T} = SymmetricTensor{2,3}((i,j)->(i <= dim && j <= dim ? A[i,j] : (i==j ? neutral(T) : zero(T))))
 
-# restricted strain states
+# fall-back true for small strains
+neutral_element(::AbstractMaterial) = zero
+
+# restricted strain states without specified output tangent
 function material_response(
     dim::Union{Dim{d}, UniaxialStrain{d}, PlaneStrain{d}},
-    m::AbstractMaterial,
+    m,
     Δε::AbstractTensor{2,d,T},
     state::AbstractMaterialState,
     Δt = nothing;
@@ -32,12 +35,31 @@ function material_response(
     options = Dict{Symbol, Any}(),
     ) where {d,T}
 
-    Δε_3D = increase_dim(Δε)
+    Δε_3D = increase_dim(Δε, neutral_element(m))
     σ, dσdε, material_state = material_response(m, Δε_3D, state, Δt; cache=cache, options=options)
 
     return reduce_dim(σ, dim), reduce_dim(dσdε, dim), material_state
 end
 
+# restricted strain states with specified output tangent
+function material_response(
+    dim::Union{Dim{d}, UniaxialStrain{d}, PlaneStrain{d}},
+    output_tangent::AbstractTangent,
+    m,
+    Δε::StrainMeasure,
+    state,
+    Δt = nothing;
+    cache = get_cache(m),
+    options = NamedTuple(),
+    ) where d
+
+    Δε_3D = increase_dim(Δε, neutral_element(m))
+    σ, dσdε, material_state = material_response(output_tangent, m, Δε_3D, state, Δt; cache=cache, options=options)
+
+    return reduce_dim(σ, dim), reduce_dim(dσdε, dim), material_state
+end
+
+#=
 # restricted stress states
 function material_response(
     dim::Union{UniaxialStress{d}, PlaneStress{d}},
@@ -57,12 +79,17 @@ function material_response(
     zero_idxs = get_zero_indices(dim, Δε_3D)
     nonzero_idxs = get_nonzero_indices(dim, Δε_3D)
     
-    for _ in 1:max_iter
-        σ, ∂σ∂ε, temp_state = material_response(m, Δε_3D, state, Δt; cache=cache, options=options)
-        σ_mandel = _tomandel_sarray(dim, σ)
-        if norm(σ_mandel) < tol
+    σ, ∂σ∂ε, temp_state = material_response(m, Δε_3D, state, Δt; cache=cache, options=options)
+    # evil Tensor internals
+    n_entries = length(σ.data)
+    σ_mandel = MVector{n_entries, eltype(σ)}(undef)
+    ∂σ∂ε_mandel = MArray{(n_entries, n_entries), eltype(σ)}(undef)
+    for iter in 1:max_iter
+        iter > 1 && (σ, ∂σ∂ε, temp_state = material_response(m, Δε_3D, state, Δt; cache=cache, options=options))
+        σ_mandel = tomandel!(σ_mandel, σ)
+        @views if norm(σ_mandel[zero_idxs]) < tol
             #TODO: Do this with static arrays to avoid transforming to mandel
-            _∂σ∂ε = tomandel(∂σ∂ε)
+            _∂σ∂ε = tomandel!(∂σ∂ε_mandel, ∂σ∂ε)
             _∂σ∂ε_mod = _∂σ∂ε[nonzero_idxs, nonzero_idxs] - _∂σ∂ε[nonzero_idxs, zero_idxs] * inv(_∂σ∂ε[zero_idxs, zero_idxs]) * _∂σ∂ε[zero_idxs,nonzero_idxs]
             ∂σ∂ε_2D = frommandel(SymmetricTensor{4,d}, _∂σ∂ε_mod) 
             return reduce_dim(σ, dim), ∂σ∂ε_2D, temp_state
@@ -117,3 +144,4 @@ get_zero_indices(::UniaxialStress{1}, ::SymmetricTensor{2,3}) = collect(2:6) # f
 get_nonzero_indices(::UniaxialStress{1}, ::SymmetricTensor{2,3}) = [1] # for voigt/mandel format, do not use on tensor data!
 get_zero_indices(::UniaxialStress{1}, ::Tensor{2,3}) = collect(2:9) # for voigt/mandel format, do not use on tensor data!
 get_nonzero_indices(::UniaxialStress{1}, ::Tensor{2,3}) = [1] # for voigt/mandel format, do not use on tensor data!
+=#

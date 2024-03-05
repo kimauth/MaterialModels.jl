@@ -9,16 +9,16 @@
     E = (C - one(C))/2
 
     # strain transformations
-    _E = MaterialModels.transform_strain(RightCauchyGreen(C), GreenLagrange)
+    _E = MaterialModels.transform_strain(RightCauchyGreen(C), MaterialModels._GreenLagrange())
     @test E ≈ _E.value
-    _E = MaterialModels.transform_strain(DeformationGradient(F), GreenLagrange)
+    _E = MaterialModels.transform_strain(DeformationGradient(F), MaterialModels._GreenLagrange())
     @test E ≈ _E.value
-    _C = MaterialModels.transform_strain(GreenLagrange(E), RightCauchyGreen)
+    _C = MaterialModels.transform_strain(GreenLagrange(E), MaterialModels._RightCauchyGreen())
     @test C ≈ _C.value
-    _C = MaterialModels.transform_strain(DeformationGradient(F), RightCauchyGreen)
+    _C = MaterialModels.transform_strain(DeformationGradient(F), MaterialModels._RightCauchyGreen())
     @test C ≈ _C.value
     # no transformation
-    _C = MaterialModels.transform_strain(RightCauchyGreen(C), RightCauchyGreen)
+    _C = MaterialModels.transform_strain(RightCauchyGreen(C), MaterialModels._RightCauchyGreen())
     @test _C.value === C
 
     S, dSdC, state = material_response(MaterialModels.∂S∂C(), mat, DeformationGradient(F), state, Δt)

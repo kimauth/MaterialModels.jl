@@ -86,6 +86,7 @@ include("Plastic.jl")
 include("CrystalViscoPlastic/slipsystems.jl")
 include("CrystalViscoPlastic/CrystalViscoPlastic.jl")
 
+include("FiniteStrain/AbstractFiniteStrainMaterial.jl")
 include("FiniteStrain/neohook.jl")
 include("FiniteStrain/yeoh.jl")
 include("FiniteStrain/stvenant.jl")
@@ -94,6 +95,7 @@ include("CohesiveMaterials/XuNeedleman.jl")
 
 include("nonlinear_solver.jl")
 include("wrappers.jl")
+include("restricted_stress_iterations.jl")
 
 export initial_material_state, get_cache
 export material_response

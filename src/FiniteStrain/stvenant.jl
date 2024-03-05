@@ -7,7 +7,7 @@ Hyperelastic material
 - `μ::Float64`: Lamé parameter (shear modulus)
 """
 
-struct StVenant <: AbstractMaterial
+struct StVenant <: AbstractFiniteStrainMaterial
     λ::Float64
     μ::Float64
 end
@@ -23,7 +23,7 @@ function StVenant(; λ::T, μ::T) where T
     return StVenant(λ, μ)
 end
 
-native_tangent_type(::Type{StVenant}) = ∂S∂C
+native_tangent(::Type{StVenant}) = ∂S∂C()
 
 function elastic_strain_energy_density(mp::StVenant, C)
     (; μ, λ) = mp

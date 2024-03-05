@@ -1,54 +1,95 @@
-
+# external: Wrappers for strain (user interface of material_response)
 struct GreenLagrange{T<:SymmetricTensor{2}} <: StrainMeasure; value::T; end
 struct RightCauchyGreen{T<:SymmetricTensor{2}} <: StrainMeasure; value::T; end
 struct DeformationGradient{T<:Tensor{2}} <: StrainMeasure; value::T; end
 struct VelocityGradient{T} <: StrainMeasure; value::T; end
 struct SmallStrain{T} <: StrainMeasure; value::T;  end
+# allow to index strain wrappers like normal tensors
+Base.getindex(A::StrainMeasure, idxs::Int...) = Base.getindex(A.value, idxs...)
+
+get_base(::Type{<:DeformationGradient}) = DeformationGradient
+get_base(::Type{<:RightCauchyGreen}) = RightCauchyGreen
+get_base(::Type{<:GreenLagrange}) = GreenLagrange
+get_base(::Type{<:VelocityGradient}) = VelocityGradient
+get_base(::Type{<:SmallStrain}) = SmallStrain
+
+# allow get_base perform as unity on tensors
+get_base(::Type{T}) where T<:AbstractTensor = T
+
+increase_dim(strain::SM, neutral) where SM<:StrainMeasure = get_base(SM)(increase_dim(strain.value, neutral))
 
 strainmeasure(m::AbstractMaterial) = error("Strain measure for material $m not defined ")
 
-abstract type StressMeasure end
-struct SecondPiolaKirchhoff{T<:SymmetricTensor{2}} <: StressMeasure; value::T; end
-struct FirstPiolaKirchhoff{T<:Tensor{2}} <: StressMeasure; value::T; end
-struct FirstPiolaKirchhoffTransposed{T<:Tensor{2}} <: StressMeasure; value::T; end
-struct TrueStress{T<:SymmetricTensor{2}} <: StressMeasure; value::T; end
-
+# external: User interface to define which measures to return
 abstract type AbstractTangent end
-struct ∂S∂C{T<:SymmetricTensor{4}} <: AbstractTangent; value::T; end
-struct ∂S∂E{T<:SymmetricTensor{4}} <: AbstractTangent; value::T; end
-struct ∂Pᵀ∂F{T<:Tensor{4}} <: AbstractTangent; value::T; end
-struct ∂σ∂ε{T<:SymmetricTensor{4}} <: AbstractTangent; value::T; end
+struct ∂S∂C <: AbstractTangent; end
+struct ∂S∂E <: AbstractTangent; end
+struct ∂P∂F <: AbstractTangent; end
+struct ∂Pᵀ∂F <: AbstractTangent; end
+struct ∂σ∂ε <: AbstractTangent; end
 
-# better with instances at top level
-# types in material_response call are ok if the type is infered from a typed argument, but not from Type{Tangent}
-∂Pᵀ∂F() = ∂Pᵀ∂F(zero(Tensor{4,3}))
-∂S∂C() = ∂S∂C(zero(SymmetricTensor{4,3}))
-∂S∂E() = ∂S∂E(zero(SymmetricTensor{4,3}))
-∂σ∂ε() = ∂σ∂ε(zero(SymmetricTensor{4,3}))
+# internal: singleton types for trait system
+struct _GreenLagrange <: StrainMeasure; end
+struct _RightCauchyGreen <: StrainMeasure; end
+struct _DeformationGradient <: StrainMeasure; end
+struct _VelocityGradient <: StrainMeasure; end
+struct _SmallStrain <: StrainMeasure; end
 
+abstract type StressMeasure end
+struct _SecondPiolaKirchhoff <: StressMeasure; end
+struct _FirstPiolaKirchhoff <: StressMeasure; end
+struct _FirstPiolaKirchhoffTransposed <: StressMeasure; end
+struct _TrueStress <: StressMeasure; end
+
+# assign stress/strain traits to tangents
+straintrait(::Type{∂S∂C}) = _RightCauchyGreen()
+straintrait(::Type{∂S∂E}) = _GreenLagrange()
+straintrait(::Type{∂P∂F}) = _DeformationGradient()
+straintrait(::Type{∂Pᵀ∂F}) = _DeformationGradient()
+straintrait(::Type{∂σ∂ε}) = _SmallStrain()
+
+stresstrait(::Type{∂S∂C}) = _SecondPiolaKirchhoff()
+stresstrait(::Type{∂S∂E}) = _SecondPiolaKirchhoff()
+stresstrait(::Type{∂P∂F}) = _FirstPiolaKirchhoff()
+stresstrait(::Type{∂Pᵀ∂F}) = _FirstPiolaKirchhoffTransposed()
+stresstrait(::Type{∂σ∂ε}) = _TrueStress()
+
+# assign strain wrappers to strain trait types
+straintrait(::Type{<:RightCauchyGreen}) = _RightCauchyGreen()
+straintrait(::Type{<:GreenLagrange}) = _GreenLagrange()
+straintrait(::Type{<:DeformationGradient}) = _DeformationGradient()
+straintrait(::Type{<:SmallStrain}) = _SmallStrain()
 """
-    transform_strain(strain::::StrainMeasure, to::Type{StrainMeasure})
+    transform_strain(strain::StrainMeasure, to::Type{StrainMeasure})
 
 Compute strain meassure defined by `to` from `strain`.
 """
-transform_strain(strain::Ts, ::Type{Tn}) where {Tn, Ts<:Tn} = strain # generic (no transformation)
-function transform_strain(F::DeformationGradient, ::Type{RightCauchyGreen}) 
+function transform_strain(strain::T1, ::T2) where {T1, T2} # generic (no transformation)
+    if typeof(straintrait(T1)) != T2
+        error("The strain conversion from $T1 to $T2 is not implemented.")
+    end
+    return strain
+end
+function transform_strain(F::DeformationGradient, ::_RightCauchyGreen) 
     C = tdot(F.value)
     return RightCauchyGreen(C)
 end
-function transform_strain(C::RightCauchyGreen{T}, ::Type{GreenLagrange}) where T
+function transform_strain(C::RightCauchyGreen{T}, ::_GreenLagrange) where T
     E = (C.value - one(T))/2
     return GreenLagrange(E)
 end
-function transform_strain(E::GreenLagrange{T}, ::Type{<:RightCauchyGreen}) where T
+function transform_strain(E::GreenLagrange{T}, ::_RightCauchyGreen) where T
     C = 2E.value + one(T)
     return RightCauchyGreen{T}(C)
 end
-function transform_strain(F::DeformationGradient, ::Type{GreenLagrange})
+function transform_strain(F::DeformationGradient, ::_GreenLagrange)
     C = tdot(F.value)
     E = (C - one(C))/2
     return GreenLagrange(E)
 end
+# forward calls to the traits
+# TODO: perhaps not even needed?
+transform_strain(strain::StrainMeasure, ::T) where T<:AbstractTangent = transform_strain(strain, straintrait(T))
 
 """
     transform_tangent(stress::StressMeasure, tangent::AbstractTangent, to::Type{AbstractTangent}, strain::StrainMeasure)
@@ -57,23 +98,34 @@ Transform the stress and tangent to the stress and tangent types given by the ta
 Some transformations require the deformation gradient which can be given by `strain`.
 Transformations that do not require the deformation gradient ignore `strain`.
 """
-transform_stress_tangent(stress, tangent::T, ::Type{T}, ::StrainMeasure)  where T<:AbstractTangent = stress, tangent
-function transform_stress_tangent(S::SecondPiolaKirchhoff, dSdC::∂S∂C, ::Type{<:∂S∂E}, ::StrainMeasure)
-    return S, ∂S∂E(2dSdC.value)
-end
-function transform_stress_tangent(S::SecondPiolaKirchhoff, dSdE::∂S∂E, ::Type{<:∂S∂C}, ::StrainMeasure)
-    return S, ∂S∂C(0.5dSdE.value)
-end
-function transform_stress_tangent(
-        S::SecondPiolaKirchhoff{T},
-        dSdC::∂S∂C, 
-        ::Type{<:∂Pᵀ∂F},
-        F::DeformationGradient
-) where T
+transform_stress_tangent(stress::SecondOrderTensor, tangent::FourthOrderTensor, 
+        #=from=#::T, #=to=#::T, ::StrainMeasure) where T<:AbstractTangent = stress, tangent
+
+transform_stress_tangent(S::SymmetricTensor{2}, dSdC::SymmetricTensor{4}, 
+        #=from=#::∂S∂C, #=to=#::∂S∂E, ::StrainMeasure) = S, 2dSdC
+
+transform_stress_tangent(S::SymmetricTensor{2}, dSdE::SymmetricTensor{4}, 
+        #=from=#::∂S∂E, #=to=#::∂S∂C, ::StrainMeasure) = S, 0.5dSdE
+
+function transform_stress_tangent(S::T, dSdC::SymmetricTensor{4}, 
+        #=from=#::∂S∂C, #=to=#::∂Pᵀ∂F, F::DeformationGradient) where T<:SymmetricTensor{2}
     I = one(T)
-    Pᵀ = S.value ⋅ F.value'
-    dPᵀdF = otimesl(S.value, I) + otimesu(I, F.value) ⊡ dSdC.value ⊡ (otimesl(I, F.value') + otimesu(F.value', I))
-    return FirstPiolaKirchhoff(Pᵀ), ∂Pᵀ∂F(dPᵀdF)
+    Pᵀ = S ⋅ F.value'
+    dPᵀdF = otimesl(S, I) + otimesu(I, F.value) ⊡ dSdC ⊡ (otimesl(I, F.value') + otimesu(F.value', I))
+    return Pᵀ, dPᵀdF
+end
+
+function transform_stress_tangent(S::SymmetricTensor{2,dim,T}, dSdC::SymmetricTensor{4}, 
+        #=from=#::∂S∂C, #=to=#::∂P∂F, F::DeformationGradient) where {dim, T}
+    P = F.value ⋅ S
+    dPdF = Tensor{4,dim,T}() do i,j,k,l
+        v = i == k ? S[l,j] : zero(T)
+        for n in 1:dim, m in 1:dim
+            v += F[i,m] * (dSdC[m,j,l,n] * F[k,n] + dSdC[m,j,n,l] * F[k,n])
+        end
+        return v
+    end
+    return P, dPdF
 end
 
 """
@@ -87,62 +139,24 @@ other stress/tangent defined by `output_tangent` (dSdC, dPᵀdF etc.)
     E.g. `∂S∂C` and `∂S∂E` can be easily converted without extra inputs, but the conversion
     of `∂S∂C` into `∂Pᵀ∂F` requires the deformation gradient `F` as `input_strain`.
 """
-# tangent transformation layer
+ # tangent transformation layer
 function material_response(
-        ::output_tangent,
+        output_tangent::AbstractTangent,
         m::M,
         strain::StrainMeasure, # usually DeformationGradient(F)
-        state,
-        Δt::Float64 = 0.0;
-        cache=nothing,
-        options=nothing,
-    ) where {M<:AbstractMaterial, output_tangent}
+        args...;
+        varargs...
+    ) where M
 
-    native_strain = transform_strain(strain, native_strain_type(M))
-    stress, tangent, newstate = _material_response(m, native_strain, state, Δt; cache=cache, options=options)
-    out_stress, out_tangent = transform_stress_tangent(stress, tangent, output_tangent, strain)
+    native_strain = transform_strain(strain, native_tangent(M))
+    stress, tangent, other_returns... = material_response(m, native_strain.value, args...; varargs...)
+    out_stress, out_tangent = transform_stress_tangent(stress, tangent, native_tangent(M), output_tangent, strain)
 
-    # return tensors (not wrapped stress types)
-    return out_stress.value, out_tangent.value, newstate
+    return out_stress, out_tangent, other_returns...
 end
-
-# wrapped stress + tangent types for tangent transformation
-function _material_response( # internal as it returns typed stress/tangent
-        m::M,
-        strain::T,
-        state,
-        Δt::Float64 = 0.0;
-        cache=nothing,
-        options=nothing
-    ) where {M<:AbstractMaterial, T<:StrainMeasure}
-
-    # TODO: Maybe this check is not needed if this routine is only called from the tangent transformation layer
-    compatible_strain_measure(T, native_strain_type(M)) || error("$T is not the native strain measure for $M:")
-
-    # call of native 3D routine
-    stress, tangent, new_state = material_response(m, strain.value, state, Δt; cache, options)
-
-    tangent_type = native_tangent_type(M)
-    stress_type = _stress_type(tangent_type)
-
-    # return wrapped stress/tangent types for tangent transformations
-    return stress_type(stress), tangent_type(tangent), new_state
-end
-    
+   
 # transformation for strain energy
 function elastic_strain_energy_density(material::M, strain::StrainMeasure) where M
-    native_strain = transform_strain(strain, native_strain_type(M))
+    native_strain = transform_strain(strain, native_tangent(M))
     return elastic_strain_energy_density(material, native_strain.value)
 end
-
-native_strain_type(::Type{M}) where M<:AbstractMaterial = _strain_type(native_tangent_type(M))
-native_stress_type(::Type{M}) where M<:AbstractMaterial = _stress_type(native_tangent_type(M))
-_strain_type(::Type{∂S∂C}) = RightCauchyGreen
-_stress_type(::Type{∂S∂C}) = SecondPiolaKirchhoff
-_strain_type(::Type{∂σ∂ε}) = SmallStrain
-_stress_type(::Type{∂σ∂ε}) = TrueStress
-
-# same strain type is compatible
-compatible_strain_measure(::Type{<:T}, ::Type{T}) where T = true
-# different strain type is not compatible
-compatible_strain_measure(::Type{<:T1}, ::Type{T2}) where {T1, T2} = false

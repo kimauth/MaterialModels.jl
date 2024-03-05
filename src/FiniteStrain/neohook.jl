@@ -7,7 +7,7 @@ Hyperelastic material
 - `μ::Float64`: Lamé parameter (shear modulus)
 """
 
-struct NeoHook <: AbstractMaterial
+struct NeoHook <: AbstractFiniteStrainMaterial
     λ::Float64
     μ::Float64
 end
@@ -24,9 +24,9 @@ function NeoHook(; λ::T, μ::T) where T
     return NeoHook(λ, μ)
 end
 
-native_tangent_type(::Type{NeoHook}) = ∂S∂C
+native_tangent(::Type{NeoHook}) = ∂S∂C()
 
-function elastic_strain_energy_density(mp::NeoHook, C::SymmetricTensor{2,3})
+function elastic_strain_energy_density(mp::NeoHook, C)
     J = sqrt(det(C))
     I = tr(C)
     return mp.μ/2 * (I-3) - mp.μ*log(J) + mp.λ/2 * log(J)^2

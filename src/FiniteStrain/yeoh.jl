@@ -8,7 +8,7 @@ Hyper elastic material
 - `c₂::Float64`: Material constant
 - `c₃::Float64`: Material constant
 """
-struct Yeoh <: AbstractMaterial
+struct Yeoh <: AbstractFiniteStrainMaterial
     λ::Float64
     μ::Float64
     c₂::Float64

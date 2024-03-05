@@ -22,7 +22,7 @@ end
 LinearElastic(;E::Float64, ν::Float64) = LinearElastic(E, ν)
 
 # compatibility with large strain framework
-native_tangent_type(::Type{LinearElastic}) = ∂σ∂ε
+native_tangent(::Type{LinearElastic}) = ∂σ∂ε()
 
 function elastic_tangent_3D(E::T, ν::T) where T
     λ = E*ν / ((1 + ν) * (1 - 2ν))
