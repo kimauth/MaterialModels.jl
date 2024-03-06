@@ -23,6 +23,7 @@
     @test dSdC_autodiff ≈ dSdC
 
     # stress/ strain measures
-    @test MaterialModels.native_strain_type(NeoHook) == RightCauchyGreen
-    @test MaterialModels.native_stress_type(NeoHook) == MaterialModels.SecondPiolaKirchhoff
+    tangent = MaterialModels.native_tangent(NeoHook)
+    @test MaterialModels.straintrait(typeof(tangent)) == MaterialModels._RightCauchyGreen()
+    @test MaterialModels.stresstrait(typeof(tangent)) == MaterialModels._SecondPiolaKirchhoff()
 end

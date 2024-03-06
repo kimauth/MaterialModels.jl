@@ -26,7 +26,7 @@ function Yeoh(; λ::T, μ::T, c₂::T, c₃::T) where T <: AbstractFloat
     return Yeoh(λ, μ, c₂, c₃)
 end
 
-native_tangent_type(::Type{Yeoh}) = ∂S∂C
+native_tangent(::Type{Yeoh}) = ∂S∂C()
 
 function elastic_strain_energy_density(mp::Yeoh, C::SymmetricTensor{2,3})
     J = sqrt(det(C))

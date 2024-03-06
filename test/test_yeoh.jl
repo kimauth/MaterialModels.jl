@@ -24,6 +24,7 @@
     @test isapprox(dSdC_autodiff, dSdC; rtol=1e-7)
 
     # stress/ strain measures
-    @test MaterialModels.native_strain_type(Yeoh) == RightCauchyGreen
-    @test MaterialModels.native_stress_type(Yeoh) == MaterialModels.SecondPiolaKirchhoff
+    tangent = MaterialModels.native_tangent(Yeoh)
+    @test MaterialModels.straintrait(typeof(tangent)) == MaterialModels._RightCauchyGreen()
+    @test MaterialModels.stresstrait(typeof(tangent)) == MaterialModels._SecondPiolaKirchhoff()
 end

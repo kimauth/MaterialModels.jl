@@ -26,7 +26,7 @@ end
 
 native_tangent(::Type{NeoHook}) = ∂S∂C()
 
-function elastic_strain_energy_density(mp::NeoHook, C)
+function elastic_strain_energy_density(mp::NeoHook, C::SymmetricTensor{2})
     J = sqrt(det(C))
     I = tr(C)
     return mp.μ/2 * (I-3) - mp.μ*log(J) + mp.λ/2 * log(J)^2
