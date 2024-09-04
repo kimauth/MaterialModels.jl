@@ -103,7 +103,7 @@ export elastic_strain_energy_density
 export AbstractMaterial, AbstractMaterialState
 export LinearElastic, TransverselyIsotropic, Plastic, CrystalViscoPlastic
 export LinearElasticState, TransverselyIsotropicState, PlasticState, CrystalViscoPlasticState
-export AbstractDim, UniaxialStrain, UniaxialStress, PlaneStrain, PlaneStress, ShellState
+export AbstractDim, UniaxialStrain, UniaxialStress, PlaneStrain, PlaneStress, ShellStress
 
 export DeformationGradient, RightCauchyGreen, GreenLagrange, SmallStrain
 export NeoHook, Yeoh, StVenant
