@@ -45,7 +45,7 @@ end
 
 # restricted stress states
 function material_response(
-    dim::AbstractDim{d},#Union{UniaxialStress{d}, PlaneStress{d}},
+    dim::Union{UniaxialStress{d}, PlaneStress{d}, ShellStress{d}},
     m::AbstractMaterial,
     Δε::AbstractTensor{2,d,T},
     state::AbstractMaterialState,
