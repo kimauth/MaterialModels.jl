@@ -19,6 +19,22 @@
     @test σ ≈ ∂σ∂ε ⊡ Δε
     @test tovoigt(∂σ∂ε) ≈ m.E/(1-m.ν^2)*[1 m.ν 0; m.ν 1 0; 0 0 (1-m.ν)/2]
 
+    # Shell stress σ33 == 0.0
+    dim = ShellStress()
+    Δε = rand(SymmetricTensor{2,3})
+    σ, ∂σ∂ε, temp_state = material_response(dim, m, Δε, state)
+    ν = m.ν
+    a = (1-ν)/2
+    ∂σ∂ε_shell = m.E/(1-m.ν^2) * [1 ν 0 0 0 0; #From "The Finite Element Method - Linear static and dynamic FEM" by Thomas J.R Hughes
+                                  ν 1 0 0 0 0;
+                                  0 0 0 0 0 0
+                                  0 0 0 a 0 0;
+                                  0 0 0 0 a 0;
+                                  0 0 0 0 0 a]
+    @test σ[3,3] ≈ 0.0 atol=1e-10
+    @test σ ≈ ∂σ∂ε ⊡ Δε
+    @test tovoigt(∂σ∂ε) ≈ ∂σ∂ε_shell
+    
     ################################################
     # strain wrapper
     ################################################
