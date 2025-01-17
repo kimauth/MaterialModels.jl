@@ -26,22 +26,20 @@ increase_dim(A::Tensor{2,dim,T}) where {dim, T} = Tensor{2,3}((i,j)->(i <= dim &
 increase_dim(A::SymmetricTensor{2,dim,T}) where {dim, T} = SymmetricTensor{2,3}((i,j)->(i <= dim && j <= dim ? A[i,j] : zero(T)))
 increase_dim(A::SymmetricTensor{2,3}) = A
 
-# restricted strain states
 function material_response(
     dim::Union{Dim{d}, UniaxialStrain{d}, PlaneStrain{d}},
     m::AbstractMaterial,
-    Δε::AbstractTensor{2,d,T},
-    state::AbstractMaterialState,
-    Δt = nothing;
-    cache = get_cache(m),
-    options = Dict{Symbol, Any}(),
-    ) where {d,T}
+    Δε::AbstractTensor{2,d},
+    args...;
+    kwargs...
+    ) where d
 
     Δε_3D = increase_dim(Δε)
-    σ, dσdε, material_state = material_response(m, Δε_3D, state, Δt; cache=cache, options=options)
+    σ, dσdε, material_state = material_response(m, Δε_3D, args...; kwargs...)
 
     return reduce_dim(σ, dim), reduce_dim(dσdε, dim), material_state
 end
+
 
 # restricted stress states
 function material_response(
